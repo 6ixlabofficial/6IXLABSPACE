@@ -151,10 +151,10 @@ function Hero() {
       <div className="mx-auto max-w-7xl px-4 py-10 md:py-16 md:px-8 grid items-center gap-8 md:grid-cols-2">
         <div>
           <h1 className="text-3xl md:text-5xl font-oswald leading-tight tracking-tight text-neutral-900">
-            6IXLAB - Custom Clothing & Logo
+            6IXLAB - Premium Clothing & Design
           </h1>
           <p className="mt-4 max-w-prose text-neutral-600">
-            ออกแบบและผลิตสำหรับ FIVEM เสื้อผ้า โลโก้ และแอคเซสซอรี โทนมินิมอลดูแพง
+            รับออกแบบชุด, งานกราฟิก, โลโก้ต่างๆ สำหรับเกม FIVEM 
           </p>
           <div className="mt-6 flex gap-3">
             <a href="#shop" className="rounded-md bg-neutral-900 px-5 py-3 text-sm text-white shadow hover:shadow-md">Shop</a>
@@ -200,58 +200,63 @@ function ProductDetail({ product, onClose }:{product: Product, onClose: ()=>void
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 md:p-8"
+      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4"
       onClick={onClose}
     >
+      {/* กล่องโมดอล: เลื่อนภายในกล่องเอง ไม่ล้นจอ */}
       <div
-        className="relative grid w-full max-w-6xl grid-cols-1 gap-6 rounded-xl bg-white p-6 md:grid-cols-2 md:p-8 shadow-2xl"
-        onClick={(e)=>e.stopPropagation()}
+        className="relative w-full max-w-6xl max-h-[calc(100vh-2rem)] overflow-y-auto rounded-xl bg-white p-4 sm:p-6 md:p-8 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
       >
+        {/* ปุ่มปิดติดเพดาน */}
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-sm border border-neutral-200 bg-white px-3 py-1 text-sm text-neutral-700 hover:bg-neutral-50"
+          className="sticky top-0 ml-auto block rounded-sm border border-neutral-200 bg-white px-3 py-1 text-sm text-neutral-700 hover:bg-neutral-50"
         >
           ✕ Close
         </button>
 
-        {/* ซ้าย: ภาพสินค้า */}
-        <div>
-          <div className="aspect-[4/5] overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50">
-            <Image
-              src={product.images[activeImage]}
-              alt={product.name}
-              width={1200}
-              height={1500}
-              className="h-full w-full object-cover"
-            />
-          </div>
-          {product.images.length > 1 && (
-            <div className="mt-3 flex gap-2">
-              {product.images.map((src, i) => (
-                <button
-                  key={i}
-                  className={`h-20 w-16 overflow-hidden rounded-md border ${
-                    i===activeImage ? 'border-neutral-900' : 'border-neutral-200'
-                  }`}
-                  onClick={()=>setActiveImage(i)}
-                >
-                  <Image
-                    src={src}
-                    alt={`preview-${i}`}
-                    width={120}
-                    height={150}
-                    className="h-full w-full object-cover"
-                  />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* ขวา: รายละเอียดสินค้า */}
-        <div className="flex flex-col">
+        {/* ✅ จัดเลย์เอาต์ 2 คอลัมน์ตั้งแต่ md ขึ้นไป */}
+        <div className="grid gap-6 md:grid-cols-2 md:items-start">
+          {/* ซ้าย: รูป + แกลเลอรี */}
           <div>
-            {/* ✅ ขยายขนาดตัวหนังสือ */}
+            <div className="aspect-[4/5] overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50">
+              <Image
+                src={product.images[activeImage]}
+                alt={product.name}
+                width={1200}
+                height={1500}
+                className="h-full w-full object-cover"
+                sizes="(min-width:1024px) 50vw, 100vw"
+              />
+            </div>
+
+            {product.images.length > 1 && (
+              <div className="mt-3 flex gap-2">
+                {product.images.map((src, i) => (
+                  <button
+                    key={i}
+                    className={`h-20 w-16 overflow-hidden rounded-md border ${
+                      i === activeImage ? 'border-neutral-900' : 'border-neutral-200'
+                    }`}
+                    onClick={() => setActiveImage(i)}
+                    title={`ภาพที่ ${i + 1}`}
+                  >
+                    <Image
+                      src={src}
+                      alt={`preview-${i}`}
+                      width={120}
+                      height={150}
+                      className="h-full w-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ขวา: รายละเอียดสินค้า */}
+          <div className="md:sticky md:top-8">
             <h2 className="text-3xl md:text-4xl font-oswald tracking-tight text-neutral-900">
               {product.name}
             </h2>
@@ -259,27 +264,27 @@ function ProductDetail({ product, onClose }:{product: Product, onClose: ()=>void
             <p className="mt-2 text-xl md:text-2xl font-semibold text-neutral-900">
               {baht(product.price)}
             </p>
-          </div>
 
-          <p className="mt-4 text-base leading-7 text-neutral-700 max-w-prose">
-            {product.description}
-          </p>
+            <p className="mt-4 text-base leading-7 text-neutral-700 max-w-prose">
+              {product.description}
+            </p>
 
-          {/* ปุ่ม Contact */}
-          <div className="mt-6">
-            <a
-              href="https://discord.gg/ZAPXTwUYmW"   // 👈 ใส่ลิงก์ Discord จริงของคุณตรงนี้
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center rounded-md bg-neutral-900 px-6 py-3 text-base text-white shadow hover:shadow-md"
->
-              Contact • สอบถาม/สั่งทำ
-            </a>
-          </div>
+            {/* ปุ่มไป Discord ตรง ๆ (เปลี่ยนลิงก์จริงของคุณ) */}
+            <div className="mt-6">
+              <a
+                href="https://discord.gg/your-invite"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center rounded-md bg-neutral-900 px-6 py-3 text-base text-white shadow hover:shadow-md"
+              >
+                Contact • สอบถาม/สั่งทำ
+              </a>
+            </div>
 
-          <div className="pt-6 text-sm text-neutral-500 leading-6">
-            <p>Free shipping in Thailand over ฿1,500. ส่งฟรีเมื่อสั่งซื้อเกิน 1,500 บาท</p>
-            <p>Easy returns within 14 days. คืนได้ภายใน 14 วัน</p>
+            <div className="pt-6 text-sm text-neutral-500 leading-6">
+              <p>Free shipping in Thailand over ฿1,500. ส่งฟรีเมื่อสั่งซื้อเกิน 1,500 บาท</p>
+              <p>Easy returns within 14 days. คืนได้ภายใน 14 วัน</p>
+            </div>
           </div>
         </div>
       </div>
