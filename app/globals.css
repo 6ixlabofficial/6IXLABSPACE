@@ -2,9 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: light; }
+:root { color-scheme: light; 
+        --font-oswald: 'Oswald', sans-serif;
+}
 
 html, body { height: 100%; background: #fff; }
 
 /* Smooth text */
 body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+.font-oswald {
+  font-family: var(--font-oswald);
+}

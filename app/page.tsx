@@ -139,9 +139,10 @@ function TopBar() {
     <header className="sticky top-0 z-40 border-b border-neutral-200/70 bg-white/70 backdrop-blur">
       <div className="mx-auto max-w-7xl px-4 py-3 md:px-8 flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <span className="rounded-full border border-neutral-300 px-3 py-1 text-xs uppercase tracking-widest text-neutral-700">
-            6ixlab
-          </span>
+          <a href="/" className="flex items-center gap-2">
+            <Image src="/images/logo.png" alt="6ixlab" width={28} height={28} />
+            <span className="sr-only">6ixlab</span>
+          </a>
           <nav className="hidden gap-6 md:flex">
             <a className="text-sm text-neutral-700 hover:text-neutral-900" href="#collections">Collections</a>
             <a className="text-sm text-neutral-700 hover:text-neutral-900" href="#about">About</a>
@@ -158,7 +159,7 @@ function Hero() {
     <section className="relative">
       <div className="mx-auto max-w-7xl px-4 py-10 md:py-16 md:px-8 grid items-center gap-8 md:grid-cols-2">
         <div>
-          <h1 className="text-3xl md:text-5xl font-serif leading-tight tracking-tight text-neutral-900">
+          <h1 className="text-3xl md:text-5xl font-oswald leading-tight tracking-tight text-neutral-900">
             Minimal pieces, {'\n'}quiet luxury.
           </h1>
           <p className="mt-4 max-w-prose text-neutral-600">
