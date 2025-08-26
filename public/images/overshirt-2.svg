@@ -1,0 +1,7 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='1500'>
+  <rect width='100%' height='100%' fill='#dcd3c5'/>
+  <g fill='#111111' font-family='ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto'>
+    <text x='50%' y='48%' dominant-baseline='middle' text-anchor='middle' font-size='52'>Overshirt · Detail</text>
+    <text x='50%' y='55%' dominant-baseline='middle' text-anchor='middle' font-size='20' opacity='0.5'>1200×1500</text>
+  </g>
+</svg>
