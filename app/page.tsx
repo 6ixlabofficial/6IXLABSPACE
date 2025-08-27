@@ -20,20 +20,20 @@ type Product = {
 
 const PRODUCTS: Product[] = [
   {
-    id: 'tee-classic',
-    name: 'Classic Tee',
-    thName: 'เสื้อยืดคลาสสิก',
-    price: 250,
-    category: 'shirt',
+    id: 'suit-classic',
+    name: 'Suit Classic',
+    thName: 'สูทคลาสิค',
+    price: 200,
+    category: 'suit',
     colors: [
       { name: 'Ivory', hex: '#f7f5f0' },
       { name: 'Black', hex: '#0a0a0a' },
       { name: 'Oat', hex: '#e9e4da' },
     ],
     sizes: ['XS','S','M','L','XL'],
-    images: ['/images/classic-tee-1.svg','/images/classic-tee-2.svg','/images/fabric-detail.svg'],
-    description: 'Combed cotton, 220 GSM. Minimal stitching, relaxed fit. ผ้าคอตตอนหวี เส้นใยเนียนนุ่ม ซักแล้วไม่ย้วย',
-    badges: ['New','Bestseller'],
+    images: ['/images/suit-classic/suit-classic-front.png','/images/suit-classic/suit-classic-back.png','/images/fabric-detail.svg'],
+    description: 'สามารถเปลี่ยนสีเสื้อ, ปกคอ, กระเป๋า, กระดุม, คัสต้อมลาย, เปลี่ยนโลโก้, ได้ตามที่ต้องการ',
+    badges: ['Bestseller'],
   },
   {
     id: 'overshirt',
@@ -346,8 +346,8 @@ function ProductDetail({ product, onClose }:{product: Product, onClose: ()=>void
             </div>
 
             <div className="pt-6 text-sm text-neutral-500 leading-6">
-              <p>Free shipping in Thailand over ฿1,500. ส่งฟรีเมื่อสั่งซื้อเกิน 1,500 บาท</p>
-              <p>Easy returns within 14 days. คืนได้ภายใน 14 วัน</p>
+              <p>ติดต่อสอบถาม/คุยรายละเอียดงานได้ที่ดิสคอร์ด</p>
+              <p>คิวปกติจะอยู่ที่ประมาณ 1-5 วันโดยประมาณ</p>
             </div>
           </div>
         </div>
