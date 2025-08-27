@@ -9,7 +9,7 @@ export type CollectionItem = {
 export const COLLECTIONS: CollectionItem[] = [
   {
     id: 'item-01',
-    name: 'Classic Tee',
+    name: 'SoWhat',
     images: [
       '/images/collections/tn1-sowhat.png',
       '/images/collections/classic-tee-2.svg',

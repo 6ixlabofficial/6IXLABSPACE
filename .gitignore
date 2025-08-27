@@ -1,1 +1,10 @@
-node_modules
+# dependencies
+/node_modules
+
+# production
+/.next
+/out
+
+# debug
+npm-debug.log*
+yarn-debu
