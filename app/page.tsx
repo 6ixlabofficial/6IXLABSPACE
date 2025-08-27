@@ -1,7 +1,7 @@
 'use client'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 
 type Color = { name: string; hex: string }
 type Category = 'suit' | 'hood' | 'shirt' | 'polo' | 'armor' | 'other'
@@ -130,7 +130,22 @@ const PRODUCTS: Product[] = [
     category: 'suit',
     colors: [
       { name: 'Camel', hex: '#caa874' },
-      { name: 'Ash', hex: '#c1c26' },
+      { name: 'Forest', hex: '#315244' },
+    ],
+    sizes: ['S','M','L','XL'],
+    images: ['/images/wool-coat-1.svg','/images/wool-coat-2.svg'],
+    description: 'Soft-structured, hand-finished seams. งานประณีต',
+    badges: ['Signature'],
+  },
+  {
+    id: 'suit-classic',
+    name: 'suit classic',
+    thName: 'สูทคลาสสิค',
+    price: 250,
+    category: 'suit',
+    colors: [
+      { name: 'White', hex: '#ffffffff' },
+      { name: 'Black', hex: '#000000ff' },
     ],
     sizes: ['S','M','L','XL'],
     images: ['/images/wool-coat-1.svg','/images/wool-coat-2.svg'],
@@ -153,12 +168,12 @@ function Hero() {
           <h1 className="text-3xl md:text-5xl font-oswald leading-tight tracking-tight text-neutral-900">
             6IXLAB - Premium Clothing & Design
           </h1>
-          <p className="mt-4 max-w-prose text-neutral-600">
+          <p className="mt-2 font-prompt thai-tight text-lg md:text-xl leading-8 text-neutral-700">
             รับออกแบบชุด, งานกราฟิก, โลโก้ต่างๆ สำหรับเกม FIVEM 
           </p>
           <div className="mt-6 flex gap-3">
             <a href="#shop" className="rounded-md bg-neutral-900 px-5 py-3 text-sm text-white shadow hover:shadow-md">Shop</a>
-            <Link href="/collections" className="rounded-md border border-neutral-300 px-5 py-3 text-sm text-neutral-800 hover:border-neutral-900">Lookbook</Link>
+            <Link href="/collections" className="rounded-md border border-neutral-300 px-5 py-3 text-sm text-neutral-800 hover:border-neutral-900">Collections</Link>
           </div>
         </div>
         <div className="aspect-[4/3] overflow-hidden rounded-xl border border-neutral-200 bg-[radial-gradient(circle_at_30%_30%,rgba(0,0,0,0.08),transparent_60%)]">
@@ -169,24 +184,73 @@ function Hero() {
   )
 }
 
-function ProductCard({ product, onOpen }:{product: Product, onOpen: (p:Product)=>void}) {
+function ProductCard({
+  product,
+  onOpen,
+}: {
+  product: Product
+  onOpen: (p: Product) => void
+}) {
   const [hovered, setHovered] = useState(false)
+  const cover = product.images?.[0]
+
   return (
-    <div className="group relative cursor-pointer" onMouseEnter={()=>setHovered(true)} onMouseLeave={()=>setHovered(false)} onClick={()=>onOpen(product)}>
+    <div
+      className="group relative cursor-pointer"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={() => onOpen(product)}
+    >
       <div className="aspect-[4/5] overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50">
-        <Image alt={product.name} src={product.images[0]} width={1200} height={1500} className={`h-full w-full object-cover transition-transform duration-700 ${hovered ? 'scale-[1.03]':'scale-100'}`} />
+        {cover ? (
+          <Image
+            alt={product.name}
+            src={cover}
+            width={1200}
+            height={1500}
+            className={`h-full w-full object-cover transition-transform duration-700 ${
+              hovered ? 'scale-[1.03]' : 'scale-100'
+            }`}
+            sizes="(min-width:1024px) 25vw, (min-width:768px) 33vw, 50vw"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-neutral-400">
+            No Image
+          </div>
+        )}
       </div>
+
       <div className="mt-3 flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm md:text-base font-medium text-neutral-900 tracking-wide">{product.name}</h3>
-          <p className="mt-1 text-xs text-neutral-500">{product.thName}</p>
+          <h3 className="text-sm md:text-base font-medium text-neutral-900 tracking-wide">
+            {product.name}
+          </h3>
+          <p className="mt-1 font-prompt thai-tight text-sm md:text-base text-neutral-600">
+            {product.thName}
+          </p>
         </div>
-        <p className="text-sm md:text-base text-neutral-800">{baht(product.price)}</p>
+        <p className="text-sm md:text-base text-neutral-800">
+          {new Intl.NumberFormat('th-TH', {
+            style: 'currency',
+            currency: 'THB',
+            maximumFractionDigits: 0,
+          }).format(product.price)}
+        </p>
       </div>
-      <div className="mt-2 flex items-center gap-2">
-        {product.colors?.slice(0,4).map(c => <span key={c.hex} className="h-3.5 w-3.5 rounded-sm border border-neutral-300" style={{backgroundColor: c.hex}}/>)}
-        {product.badges?.length ? <div className="ml-auto flex gap-1.5">{product.badges.map(b => <Badge key={b}>{b}</Badge>)}</div> : null}
-      </div>
+
+      {/* ✅ badges ยังอยู่ ถ้าอยากลบ badges ด้วยบอกได้ครับ */}
+      {product.badges?.length ? (
+        <div className="mt-2 flex gap-1.5">
+          {product.badges.map((b) => (
+            <span
+              key={`${product.id}-badge-${b}`}
+              className="inline-flex items-center rounded-md border px-2.5 py-1 text-xs tracking-wide text-neutral-700 border-neutral-200 bg-white/60"
+            >
+              {b}
+            </span>
+          ))}
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -333,25 +397,71 @@ function Filters({ value, onChange }:{
   )
 }
 
-function ProductGrid({ onOpen, filters }:{
-  onOpen:(p:Product)=>void,
-  filters:{category:string; priceMax:number; query:string}
+function ProductGrid({
+  onOpen,
+  filters,
+}: {
+  onOpen: (p: Product) => void
+  filters: { category: string; priceMax: number; query: string }
 }) {
   const { category, priceMax, query } = filters
-  const list = useMemo(()=> 
-    PRODUCTS.filter(p =>
-      (category === 'all' || p.category === category) &&
-      p.price <= priceMax &&
-      (p.name.toLowerCase().includes(query.toLowerCase()) || p.thName.includes(query))
-    )
-  ,[category, priceMax, query])
+
+  // กรองรายการตามเงื่อนไข
+  const list = useMemo(
+    () =>
+      PRODUCTS.filter(
+        (p) =>
+          (category === 'all' || p.category === category) &&
+          p.price <= priceMax &&
+          (p.name.toLowerCase().includes(query.toLowerCase()) ||
+            p.thName.includes(query))
+      ),
+    [category, priceMax, query]
+  )
+
+  // แสดงทีละ 8 ชิ้น
+  const PER_PAGE = 8
+  const [visible, setVisible] = useState(PER_PAGE)
+
+  // เมื่อมีการเปลี่ยนฟิลเตอร์ ให้รีเซ็ตจำนวนที่เห็นกลับเป็น 8
+  useEffect(() => {
+    setVisible(PER_PAGE)
+  }, [category, priceMax, query])
+
+  const show = list.slice(0, visible)
 
   return (
     <section id="shop" className="mx-auto max-w-7xl px-4 md:px-8">
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
-        {list.map(p => <ProductCard key={p.id} product={p} onOpen={onOpen}/>)}
+        {show.map((p) => (
+          <ProductCard key={p.id} product={p} onOpen={onOpen} />
+        ))}
       </div>
-      {list.length===0 && <div className="py-20 text-center text-neutral-500">ไม่พบสินค้าที่ตรงเงื่อนไขการค้นหา</div>}
+
+      {/* สถานะ + ปุ่มโหลดเพิ่ม */}
+      {list.length > 0 && (
+        <div className="mt-6 flex items-center justify-center gap-3 text-sm text-neutral-600">
+          <span>
+            กำลังแสดง <span className="tabular-nums">{show.length}</span> จาก{' '}
+            <span className="tabular-nums">{list.length}</span> รายการ
+          </span>
+          {visible < list.length && (
+            <button
+              onClick={() => setVisible((v) => Math.min(v + PER_PAGE, list.length))}
+              className="ml-2 rounded-md border border-neutral-300 px-4 py-2 text-neutral-800 hover:border-neutral-900"
+            >
+              Load More
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ไม่มีผลลัพธ์ */}
+      {list.length === 0 && (
+        <div className="py-20 text-center text-neutral-500">
+          ไม่พบสินค้าที่ตรงเงื่อนไขการค้นหา
+        </div>
+      )}
     </section>
   )
 }

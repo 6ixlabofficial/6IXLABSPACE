@@ -12,5 +12,11 @@ html, body { height: 100%; background: #fff; }
 body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
 .font-oswald {
-  font-family: var(--font-oswald);
+  font-family: var(--font-oswald), var(--font-prompt), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
 }
+
+.font-prompt {
+  font-family: var(--font-prompt), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+}
+
+.thai-tight { letter-spacing: 0; }
