@@ -1,6 +1,7 @@
 'use client'
 import Image from 'next/image'
 import Link from 'next/link'
+import Hero from '@/components/Hero'
 import { useMemo, useState, useRef, useEffect } from 'react'
 
 type Category = 'suit' | 'hood' | 'shirt' | 'polo' | 'armor' | 'other'
@@ -53,30 +54,6 @@ const baht = (n:number) => new Intl.NumberFormat('th-TH', { style: 'currency', c
 
 function Badge({children}:{children: React.ReactNode}) {
   return <span className="inline-flex items-center rounded-md border px-2.5 py-1 text-xs tracking-wide text-neutral-700 border-neutral-200 bg-white/60">{children}</span>
-}
-
-function Hero() {
-  return (
-    <section className="relative">
-      <div className="mx-auto max-w-7xl px-4 py-10 md:py-16 md:px-8 grid items-center gap-8 md:grid-cols-2">
-        <div>
-          <h1 className="text-3xl md:text-5xl font-oswald leading-tight tracking-tight text-neutral-900">
-            6IXLAB - Premium Clothing & Design
-          </h1>
-          <p className="mt-2 font-prompt thai-tight text-lg md:text-xl leading-8 text-neutral-700">
-            รับออกแบบชุด, งานกราฟิก, โลโก้ต่างๆ สำหรับเกม FIVEM 
-          </p>
-          <div className="mt-6 flex gap-3">
-            <a href="#shop" className="rounded-md bg-neutral-900 px-5 py-3 text-sm text-white shadow hover:shadow-md">Shop</a>
-            <Link href="/collections" className="rounded-md border border-neutral-300 px-5 py-3 text-sm text-neutral-800 hover:border-neutral-900">Collections</Link>
-          </div>
-        </div>
-        <div className="aspect-[4/3] overflow-hidden rounded-xl border border-neutral-200 bg-[radial-gradient(circle_at_30%_30%,rgba(0,0,0,0.08),transparent_60%)]">
-          <Image src="/images/promotionbanner.png" alt="Campaign" width={1200} height={900} className="h-full w-full object-cover"/>
-        </div>
-      </div>
-    </section>
-  )
 }
 
 function ProductCard({
