@@ -31,38 +31,39 @@ const PRODUCTS: Product[] = [
       { name: 'Oat', hex: '#e9e4da' },
     ],
     sizes: ['XS','S','M','L','XL'],
-    images: ['/images/suit-classic/suit-classic-front.png','/images/suit-classic/suit-classic-back.png','/images/fabric-detail.svg'],
-    description: 'สามารถเปลี่ยนสีเสื้อ, ปกคอ, กระเป๋า, กระดุม, คัสต้อมลาย, เปลี่ยนโลโก้, ได้ตามที่ต้องการ',
+    images: ['/images/suit-classic/suit-classic-thumbnail.png','/images/suit-classic/suit-classic-front.png','/images/suit-classic/suit-classic-back.png'],
+    description: 'สามารถเปลี่ยนสีเสื้อ, ปกคอ, กระเป๋า, กระดุม, คัสต้อมลาย, เปลี่ยนโลโก้ ได้ตามที่ต้องการ',
     badges: ['Bestseller'],
   },
   {
-    id: 'overshirt',
-    name: 'Structured Overshirt',
-    thName: 'โอเวอร์เชิ้ตทรงสวย',
-    price: 300,
+    id: 'hood-classic',
+    name: 'Hood Classic',
+    thName: 'ฮู้ดคลาสสิค',
+    price: 200,
     category: 'suit',
     colors: [
       { name: 'Sand', hex: '#d8cfc2' },
       { name: 'Charcoal', hex: '#2b2b2b' },
     ],
     sizes: ['S','M','L','XL'],
-    images: ['/images/overshirt-1.svg','/images/overshirt-2.svg'],
-    description: 'Brushed twill with hidden placket. เหมาะกับเลเยอร์ลุคมินิมอล',
-    badges: ['Limited'],
+    images: ['/images/hood-classic/hood-classic-thumbnail.png','/images/hood-classic/hood-classic-front.png','/images/hood-classic/hood-classic-back.png'],
+    description: 'สามารถเปลี่ยนสีเสื้อ, สีฮู้ดด้านหลัง, กระเป๋าหน้าท้อง, เชือก, คัสต้อมลาย, เปลี่ยนโลโก้ ได้ตามที่ต้องการ',
+    badges: ['Bestseller'],
   },
   {
-    id: 'linen-pants',
-    name: 'Linen Blend Trousers',
-    thName: 'กางเกงลินินผสม',
-    price: 350,
+    id: 'shirt-classic',
+    name: 'Shirt Classic',
+    thName: 'เสื้อยืดคลาสสิค',
+    price: 200,
     category: 'other',
     colors: [
       { name: 'Stone', hex: '#dcd7cf' },
       { name: 'Mocha', hex: '#b8a899' },
     ],
     sizes: ['28','30','32','34','36'],
-    images: ['/images/linen-trousers.svg'],
-    description: 'Breathable and crisp. ระบายอากาศดี ใส่สบาย',
+    images: ['/images/shirt-classic/shirt-classic-thumbnail.png','/images/shirt-classic/shirt-classic-front.png','/images/shirt-classic/shirt-classic-back.png'],
+    description: 'สามารถเปลี่ยนสีเสื้อ, สีคอเสื้อ, สีขอบแขนเสื้อ, คัสต้อมลาย, เปลี่ยนโลโก้ ได้ตามที่ต้องการ',
+    badges: ['Bestseller'],
   },
   {
     id: 'slip-dress',
@@ -336,7 +337,7 @@ function ProductDetail({ product, onClose }:{product: Product, onClose: ()=>void
             {/* ปุ่มไป Discord ตรง ๆ (เปลี่ยนลิงก์จริงของคุณ) */}
             <div className="mt-6">
               <a
-                href="https://discord.gg/your-invite"
+                href="https://discord.gg/ZAPXTwUYmW"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center rounded-md bg-neutral-900 px-6 py-3 text-base text-white shadow hover:shadow-md"
