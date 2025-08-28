@@ -17,8 +17,8 @@ const prompt = Prompt({
 })
 
 export const metadata: Metadata = {
-  title: '6IXLAB — Design',
-  description: 'Studio.',
+  title: '6IXLAB - Premium Clothing & Design',
+  description: 'รับออกแบบชุด, งานกราฟิก, โลโก้ต่างๆ สำหรับเกม FIVEM และงานกราฟฟิกทั่วไป',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

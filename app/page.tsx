@@ -3,7 +3,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useMemo, useState, useRef, useEffect } from 'react'
 
-type Color = { name: string; hex: string }
 type Category = 'suit' | 'hood' | 'shirt' | 'polo' | 'armor' | 'other'
 type Product = {
   id: string
@@ -11,8 +10,6 @@ type Product = {
   thName: string
   price: number
   category: Category
-  colors: Color[]
-  sizes: string[]
   images: string[]
   description: string
   badges?: string[]
@@ -25,14 +22,8 @@ const PRODUCTS: Product[] = [
     thName: 'สูทคลาสิค',
     price: 200,
     category: 'suit',
-    colors: [
-      { name: 'Ivory', hex: '#f7f5f0' },
-      { name: 'Black', hex: '#0a0a0a' },
-      { name: 'Oat', hex: '#e9e4da' },
-    ],
-    sizes: ['XS','S','M','L','XL'],
     images: ['/images/suit-classic/suit-classic-thumbnail.png','/images/suit-classic/suit-classic-front.png','/images/suit-classic/suit-classic-back.png'],
-    description: 'สามารถเปลี่ยนสีเสื้อ, ปกคอ, กระเป๋า, กระดุม, คัสต้อมลาย, เปลี่ยนโลโก้ ได้ตามที่ต้องการ',
+    description: 'สามารถเปลี่ยนสีเสื้อ, ปกคอ, กระเป๋า, กระดุม, custom ลายเสื้อ, เปลี่ยนโลโก้ ได้ตามที่ต้องการ',
     badges: ['Bestseller'],
   },
   {
@@ -41,13 +32,8 @@ const PRODUCTS: Product[] = [
     thName: 'ฮู้ดคลาสสิค',
     price: 200,
     category: 'hood',
-    colors: [
-      { name: 'Sand', hex: '#d8cfc2' },
-      { name: 'Charcoal', hex: '#2b2b2b' },
-    ],
-    sizes: ['S','M','L','XL'],
     images: ['/images/hood-classic/hood-classic-thumbnail.png','/images/hood-classic/hood-classic-front.png','/images/hood-classic/hood-classic-back.png'],
-    description: 'สามารถเปลี่ยนสีเสื้อ, สีฮู้ดด้านหลัง, กระเป๋าหน้าท้อง, เชือก, คัสต้อมลาย, เปลี่ยนโลโก้ ได้ตามที่ต้องการ',
+    description: 'สามารถเปลี่ยนสีเสื้อ, สีฮู้ดด้านหลัง, กระเป๋าหน้าท้อง, เชือก, custom ลายเสื้อ, เปลี่ยนโลโก้ ได้ตามที่ต้องการ',
     badges: ['Bestseller'],
   },
   {
@@ -56,13 +42,8 @@ const PRODUCTS: Product[] = [
     thName: 'เสื้อยืดคลาสสิค',
     price: 200,
     category: 'shirt',
-    colors: [
-      { name: 'Stone', hex: '#dcd7cf' },
-      { name: 'Mocha', hex: '#b8a899' },
-    ],
-    sizes: ['28','30','32','34','36'],
     images: ['/images/shirt-classic/shirt-classic-thumbnail.png','/images/shirt-classic/shirt-classic-front.png','/images/shirt-classic/shirt-classic-back.png'],
-    description: 'สามารถเปลี่ยนสีเสื้อ, สีคอเสื้อ, สีขอบแขนเสื้อ, คัสต้อมลาย, เปลี่ยนโลโก้ ได้ตามที่ต้องการ',
+    description: 'สามารถเปลี่ยนสีเสื้อ, สีคอเสื้อ, สีขอบแขนเสื้อ, custom ลายเสื้อ, เปลี่ยนโลโก้ ได้ตามที่ต้องการ',
     badges: ['Bestseller'],
   },
   
@@ -167,10 +148,6 @@ function ProductCard({
       ) : null}
     </div>
   )
-}
-
-function ColorDot({ hex, selected, onClick }:{hex:string, selected:boolean, onClick:()=>void}) {
-  return <button onClick={onClick} title={hex} className={`h-5 w-5 rounded-sm border transition-all ${selected ? 'scale-110 border-neutral-900' : 'border-neutral-300 hover:scale-105'}`} style={{backgroundColor: hex}}/>
 }
 
 function ProductDetail({ product, onClose }: { product: Product; onClose: () => void }) {
@@ -299,7 +276,7 @@ function ProductDetail({ product, onClose }: { product: Product; onClose: () => 
 
             <div className="mt-6">
               <a
-                href="https://discord.gg/your-invite"
+                href="https://discord.gg/ZAPXTwUYmW"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center rounded-md bg-neutral-900 px-6 py-3 text-base md:text-lg text-white shadow hover:shadow-md"
@@ -309,8 +286,8 @@ function ProductDetail({ product, onClose }: { product: Product; onClose: () => 
             </div>
 
             <div className="pt-6 text-sm text-neutral-500 leading-6">
-              <p>Free shipping in Thailand over ฿1,500. ส่งฟรีเมื่อสั่งซื้อเกิน 1,500 บาท</p>
-              <p>Easy returns within 14 days. คืนได้ภายใน 14 วัน</p>
+              <p>ติดต่อสอบถาม/คุยรายละเอียดงานได้ที่ดิสคอร์ด</p>
+              <p>คิวปกติจะอยู่ที่ประมาณ 1-5 วันโดยประมาณ</p>
             </div>
           </div>
         </div>
