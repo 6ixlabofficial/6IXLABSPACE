@@ -11,8 +11,8 @@ export const COLLECTIONS: CollectionItem[] = [
     id: 'item-01',
     name: 'SoWhat',
     images: [
-      '/images/collections/tn1-sowhat.png',
-      '/images/collections/classic-tee-2.svg',
+      '/images/collections/sowhat/sowhat-1.png',
+      '/images/collections/sowhat/sowhat-2.png',
       '/images/collections/fabric-detail.svg',
     ],
   },

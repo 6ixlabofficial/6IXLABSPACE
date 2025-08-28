@@ -40,7 +40,7 @@ const PRODUCTS: Product[] = [
     name: 'Hood Classic',
     thName: 'ฮู้ดคลาสสิค',
     price: 200,
-    category: 'suit',
+    category: 'hood',
     colors: [
       { name: 'Sand', hex: '#d8cfc2' },
       { name: 'Charcoal', hex: '#2b2b2b' },
@@ -55,7 +55,7 @@ const PRODUCTS: Product[] = [
     name: 'Shirt Classic',
     thName: 'เสื้อยืดคลาสสิค',
     price: 200,
-    category: 'other',
+    category: 'shirt',
     colors: [
       { name: 'Stone', hex: '#dcd7cf' },
       { name: 'Mocha', hex: '#b8a899' },
