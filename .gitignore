@@ -8,3 +8,5 @@
 # debug
 npm-debug.log*
 yarn-debu
+
+.env.local

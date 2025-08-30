@@ -2,11 +2,12 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { Oswald, Prompt } from 'next/font/google'
-import TopBar from '@/components/TopBar'  // ✅ เพิ่มบรรทัดนี้
+import TopBar from '@/components/TopBar'
+import { CartProvider } from '@/components/CartContext'  // ✅ เพิ่มบรรทัดนี้
 
 const oswald = Oswald({
   subsets: ['latin'],
-  weight: ['400','700'], // เลือกน้ำหนักที่อยากใช้
+  weight: ['400','700'],
   variable: '--font-oswald'
 })
 
@@ -24,10 +25,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="th">
-      {/* ✅ คงการตั้งฟอนต์ไว้เหมือนเดิม และเพิ่มสไตล์พื้นฐานได้ตามต้องการ */}
       <body className={`${oswald.variable} ${prompt.variable} font-oswald bg-white text-neutral-900`}>
-        <TopBar />        {/* ✅ แสดง TopBar ทุกหน้า */}
-        {children}
+        {/* ✅ ครอบทั้งเว็บด้วย CartProvider */}
+        <CartProvider>
+          <TopBar />
+          {children}
+        </CartProvider>
       </body>
     </html>
   )

@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link'
 import Image from 'next/image'
+import CartButton from '@/components/CartButton'
 
 export default function TopBar() {
   return (
@@ -25,6 +26,10 @@ export default function TopBar() {
             <Link className="text-sm text-neutral-700 hover:text-neutral-900" href="/contact">Contact</Link>
             <Link className="text-sm text-neutral-700 hover:text-neutral-900" href="/about">About</Link>
           </nav>
+        </div>
+   {/* ขวา: ปุ่ม Cart */}
+        <div className="flex items-center gap-3">
+          <CartButton />  {/* ✅ เพิ่มปุ่มตะกร้า */}
         </div>
       </div>
     </header>
