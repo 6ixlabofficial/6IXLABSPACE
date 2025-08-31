@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { ratelimit } from '@/lib/ratelimit'
+import { redis } from '@/lib/redis'
 
 /* ========= ENV ========= */
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN!
@@ -10,15 +11,12 @@ const CATEGORY_ID = process.env.DISCORD_CATEGORY_ID!
 const STAFF_ROLE_ID = process.env.DISCORD_STAFF_ROLE_ID // optional
 
 /* ========= CONST ========= */
-// VIEW + SEND + READ_HISTORY + ATTACH + EMBED
-const ALLOW_PERMS = '93184' // 1024 + 2048 + 65536 + 8192 + 16384
-
-// Discord snowflake: 17–20 หลัก
+const ALLOW_PERMS = '93184' // VIEW+SEND+READ_HISTORY+ATTACH+EMBED
 const snowflake = z.string().regex(/^\d{17,20}$/, 'invalid discord id')
 
-// Payload schema
+/* ========= SCHEMA ========= */
 const OrderSchema = z.object({
-  orderId: z.string().min(1).max(64),
+  orderId: z.string().optional(),   // 👈 ทำให้ optional
   items: z.array(
     z.object({
       id: z.string().min(1).max(64),
@@ -33,6 +31,12 @@ const OrderSchema = z.object({
     discordUserId: snowflake.optional(),
   }),
 })
+
+/* ========= ORDER ID GENERATOR ========= */
+async function nextOrderId() {
+  const n = await redis.incr('order:counter')
+  return `ORD-${String(n).padStart(6, '0')}` // ORD-000001
+}
 
 /* ========= HELPERS ========= */
 function assertEnv() {
@@ -60,12 +64,9 @@ function buildOverwrites({
   customerUserId?: string
 }) {
   const overwrites: Array<{ id: string; type: 0 | 1; allow?: string; deny?: string }> = []
-  // ❌ ปิด @everyone
-  overwrites.push({ id: guildId, type: 0, deny: '1024' /* VIEW_CHANNEL */ })
-  // ✅ staff
-  if (staffRoleId) overwrites.push({ id: staffRoleId, type: 0, allow: ALLOW_PERMS })
-  // ✅ ลูกค้า
-  if (customerUserId) overwrites.push({ id: customerUserId, type: 1, allow: ALLOW_PERMS })
+  overwrites.push({ id: guildId, type: 0, deny: '1024' }) // ❌ ปิด @everyone
+  if (staffRoleId) overwrites.push({ id: staffRoleId, type: 0, allow: ALLOW_PERMS }) // ✅ staff
+  if (customerUserId) overwrites.push({ id: customerUserId, type: 1, allow: ALLOW_PERMS }) // ✅ ลูกค้า
   return overwrites
 }
 
@@ -81,8 +82,7 @@ function buildEmbed(order: z.infer<typeof OrderSchema>, total: number) {
         : []),
       {
         name: 'รายการ',
-        value:
-          order.items.map(i => `• ${i.name} × ${i.qty} — ${i.price.toLocaleString('th-TH')}฿`).join('\n') || '-',
+        value: order.items.map(i => `• ${i.name} × ${i.qty} — ${i.price.toLocaleString('th-TH')}฿`).join('\n') || '-',
       },
       { name: 'รวม', value: `**${total.toLocaleString('th-TH')}฿**`, inline: true },
     ],
@@ -107,16 +107,12 @@ export async function POST(req: NextRequest) {
   try {
     assertEnv()
 
-    // Method / Content-Type guard
-    if (req.method !== 'POST') {
-      return NextResponse.json({ ok: false, error: 'METHOD_NOT_ALLOWED' }, { status: 405 })
-    }
     const ct = req.headers.get('content-type') || ''
     if (!ct.includes('application/json')) {
       return NextResponse.json({ ok: false, error: 'UNSUPPORTED_MEDIA_TYPE' }, { status: 415 })
     }
 
-    // --- Rate limit ตาม IP (Upstash) ---
+    // --- Rate limit ---
     const ip =
       req.ip ??
       req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
@@ -142,6 +138,9 @@ export async function POST(req: NextRequest) {
     const bodyRaw = await req.json()
     const body = OrderSchema.parse(bodyRaw)
 
+    // ✅ ถ้า client ไม่ส่ง orderId → gen จาก Redis
+    const orderId = body.orderId ?? await nextOrderId()
+
     // 1) สร้าง channel
     const createChannelRes = await fetchWithTimeout(
       `https://discord.com/api/v10/guilds/${GUILD_ID}/channels`,
@@ -152,10 +151,10 @@ export async function POST(req: NextRequest) {
           Authorization: `Bot ${BOT_TOKEN}`,
         },
         body: JSON.stringify({
-          name: normalizeChannelName(`order-${body.orderId}`),
-          type: 0, // GUILD_TEXT
+          name: normalizeChannelName(`order-${orderId}`),
+          type: 0,
           parent_id: CATEGORY_ID,
-          topic: `Order #${body.orderId} • ${body.customer.name} • ${body.customer.contact}`,
+          topic: `Order #${orderId} • ${body.customer.name} • ${body.customer.contact}`,
           permission_overwrites: buildOverwrites({
             guildId: GUILD_ID,
             staffRoleId: STAFF_ROLE_ID,
@@ -174,26 +173,22 @@ export async function POST(req: NextRequest) {
 
     const channel = (await createChannelRes.json()) as { id: string }
 
-    // 2) โพสต์ Embed + content
+    // 2) โพสต์ Embed
     const total = body.items.reduce((s, i) => s + i.price * i.qty, 0)
-    const postMsg = await fetchWithTimeout(
+    await fetchWithTimeout(
       `https://discord.com/api/v10/channels/${channel.id}/messages`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bot ${BOT_TOKEN}` },
         body: JSON.stringify({
-          content: `🛒 **Order #${body.orderId}**`,
-          embeds: [buildEmbed(body, total)],
+          content: `🛒 **Order #${orderId}**`,
+          embeds: [buildEmbed({ ...body, orderId }, total)],
         }),
         timeoutMs: 15_000,
       }
     )
-    if (!postMsg.ok) {
-      const t = await postMsg.text().catch(() => '')
-      console.error('[DISCORD] post message failed:', postMsg.status, t)
-    }
 
-    // 3) สร้าง invite (optional)
+    // 3) สร้าง invite
     let inviteUrl: string | undefined
     const inviteRes = await fetchWithTimeout(
       `https://discord.com/api/v10/channels/${channel.id}/invites`,
@@ -209,32 +204,7 @@ export async function POST(req: NextRequest) {
       inviteUrl = `https://discord.gg/${invite.code}`
     }
 
-    // 4) DM ลูกค้า (ถ้ามี id)
-    if (body.customer.discordUserId) {
-      try {
-        const dmRes = await fetchWithTimeout('https://discord.com/api/v10/users/@me/channels', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bot ${BOT_TOKEN}` },
-          body: JSON.stringify({ recipient_id: body.customer.discordUserId }),
-          timeoutMs: 10_000,
-        })
-        if (dmRes.ok) {
-          const dm = (await dmRes.json()) as { id: string }
-          await fetchWithTimeout(`https://discord.com/api/v10/channels/${dm.id}/messages`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bot ${BOT_TOKEN}` },
-            body: JSON.stringify({
-              content: `เราเปิดห้องคุยออเดอร์ของคุณแล้ว: https://discord.com/channels/${GUILD_ID}/${channel.id}`,
-            }),
-            timeoutMs: 10_000,
-          })
-        }
-      } catch {
-        // ผู้ใช้บางรายปิด DM — ข้ามได้
-      }
-    }
-
-    return NextResponse.json({ ok: true, channelId: channel.id, inviteUrl })
+    return NextResponse.json({ ok: true, orderId, channelId: channel.id, inviteUrl })
   } catch (err: any) {
     if (err?.issues) {
       return NextResponse.json({ ok: false, error: 'INVALID_PAYLOAD', detail: err.issues }, { status: 400 })

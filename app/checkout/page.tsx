@@ -9,9 +9,8 @@ export default function CheckoutPage() {
   // ✓ ใช้ตะกร้าจริงจาก Context
   const { items, setQty, remove, total, clear } = useCart()
 
-  // ฟอร์มลูกค้า
-  const [customerName, setCustomerName] = useState('')
-  const [contact, setContact] = useState('')
+  // ✅ บรีฟงาน (แทน name/contact เดิม)
+  const [brief, setBrief] = useState('')
 
   // Discord (optional)
   const [discordUserId, setDiscordUserId] = useState<string | null>(null)
@@ -22,32 +21,34 @@ export default function CheckoutPage() {
   // โหลดสถานะล็อกอิน Discord ถ้ามี endpoint /api/me
   useEffect(() => {
     fetch('/api/me')
-      .then((r) => r.ok ? r.json() : { discordUserId: null })
+      .then((r) => (r.ok ? r.json() : { discordUserId: null }))
       .then((d) => setDiscordUserId(d.discordUserId ?? null))
       .catch(() => setDiscordUserId(null))
   }, [])
 
-  const loginWithDiscord = () => { window.location.href = '/api/discord/login' }
+  const loginWithDiscord = () => {
+    window.location.href = '/api/discord/login'
+  }
 
   async function placeOrder() {
-    if (!customerName || !contact) {
-      alert('กรุณากรอกชื่อและช่องทางติดต่อ')
-      return
-    }
     if (items.length === 0) {
       alert('ตะกร้าของคุณยังว่าง')
+      return
+    }
+    if (brief.trim().length < 10) {
+      alert('กรุณาพิมพ์บรีฟงานอย่างน้อย 10 ตัวอักษร')
       return
     }
 
     setLoading(true)
 
     const payload = {
-      orderId: `OD-${Date.now()}`,
+      // ไม่ต้องส่ง orderId → backend จะ gen ORD-000001 ให้เอง
       items: items.map(({ id, name, qty, price }) => ({ id, name, qty, price })),
       customer: {
-        name: customerName,
-        contact,
-        discordUserId: discordUserId ?? undefined,
+        name: 'ลูกค้าเว็บ',                         // ให้ schema ผ่านแบบเรียบง่าย
+        contact: `BRIEF: ${brief.trim()}`,          // ส่งบรีฟไปใน contact (มี prefix ชัดเจน)
+        discordUserId: discordUserId ?? undefined,  // ถ้ามีการล็อกอิน Discord
       },
     }
 
@@ -141,23 +142,25 @@ export default function CheckoutPage() {
         )}
       </div>
 
-      {/* ====== ข้อมูลลูกค้า ====== */}
+      {/* ====== บรีฟงาน (ช่องเดียว) ====== */}
       <div className="rounded-lg border border-neutral-200 p-4 mb-6">
-        <div className="mb-3 font-medium">ข้อมูลลูกค้า</div>
-        <div className="grid gap-3">
-          <input
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
-            placeholder="ชื่อของคุณ"
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-          />
-          <input
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
-            placeholder="ช่องทางติดต่อ (LINE/อีเมล/โทร)"
-            value={contact}
-            onChange={(e) => setContact(e.target.value)}
-          />
-        </div>
+        <div className="mb-3 font-medium">บรีฟงาน</div>
+        <label htmlFor="brief" className="sr-only">รายละเอียดงาน</label>
+        <textarea
+          id="brief"
+          rows={6}
+          className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900"
+          placeholder={`เช่น
+- ประเภทสินค้า: เสื้อ/ฮู้ด/สูท
+- สี/โทน: ดำ เทา ขาว
+- โลโก้/ลาย: แนบลิงก์ภาพ/ตัวอย่าง
+- ข้อจำกัด/กำหนดส่ง: ...`}
+          value={brief}
+          onChange={(e) => setBrief((e.target as HTMLTextAreaElement).value)}
+        />
+        <p className="mt-2 text-xs text-neutral-500">
+          ใส่รายละเอียดงานได้เต็มที่ ถ้ามีลิงก์ภาพตัวอย่างแนบมาได้เลย
+        </p>
       </div>
 
       {/* ====== เชื่อมต่อ Discord (ทางเลือก) ====== */}
@@ -166,7 +169,7 @@ export default function CheckoutPage() {
         {discordUserId ? (
           <div className="flex items-center justify-between">
             <span className="text-sm">
-              เชื่อมต่อแล้ว:{" "}
+              เชื่อมต่อแล้ว:{' '}
               <code className="px-1 rounded bg-neutral-100">{discordUserId}</code>
             </span>
             <span className="text-xs text-neutral-500">

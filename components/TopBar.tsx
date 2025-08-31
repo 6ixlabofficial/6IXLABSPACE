@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import CartButton from '@/components/CartButton'
+import { useCart } from '@/components/CartContext'
 
 export default function TopBar() {
   return (

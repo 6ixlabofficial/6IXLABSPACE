@@ -1,21 +1,45 @@
 // components/CartButton.tsx
 'use client'
+
 import Link from 'next/link'
 import { useCart } from '@/components/CartContext'
 
 export default function CartButton() {
-  const { count } = useCart()
+  const { items } = useCart()
+  const count = items?.reduce((n, i) => n + (i.qty ?? 1), 0) ?? 0
+
   return (
     <Link
       href="/checkout"
-      className="relative rounded-md border px-3 py-1.5 text-sm hover:bg-neutral-50"
+      aria-label="Open cart / Checkout"
+      className="relative inline-flex h-8 w-8 items-center justify-center rounded-md border
+                 border-neutral-300 bg-white/70 hover:bg-white transition"
     >
-      Cart
-      {count > 0 && (
-        <span className="absolute -right-2 -top-2 rounded-full bg-neutral-900 text-white text-xs px-1.5">
-          {count}
-        </span>
-      )}
+      {/* ไอคอนรถเข็น */}
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="h-4 w-4 text-neutral-800"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="9" cy="21" r="1"></circle>
+        <circle cx="20" cy="21" r="1"></circle>
+        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h7.72a2 2 0 0 0 2-1.61L22 7H6"></path>
+      </svg>
+
+      {/* แสดง badge เสมอ แต่ซ่อนถ้า count = 0 */}
+      <span
+        aria-hidden={count === 0}
+        className={`absolute -top-1.5 -right-1.5 min-w-[1rem] h-4 px-1 rounded-full
+                    text-[10px] flex items-center justify-center
+                    ${count === 0 ? 'invisible' : 'bg-neutral-900 text-white'}`}
+      >
+        {count}
+      </span>
     </Link>
   )
 }
