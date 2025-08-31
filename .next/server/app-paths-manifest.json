@@ -1,6 +1,5 @@
 {
   "/page": "app/page.js",
   "/checkout/page": "app/checkout/page.js",
-  "/api/me/route": "app/api/me/route.js",
-  "/collections/page": "app/collections/page.js"
+  "/api/me/route": "app/api/me/route.js"
 }

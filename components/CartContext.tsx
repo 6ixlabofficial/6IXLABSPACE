@@ -1,7 +1,15 @@
+// components/CartContext.tsx
 'use client'
 import { createContext, useContext, useEffect, useState } from 'react'
 
-export type CartItem = { id:string; name:string; price:number; qty:number }
+export type CartItem = { 
+  id: string
+  name: string
+  price: number
+  qty: number
+  image?: string   // ✅ เพิ่ม image optional
+}
+
 type CartContextType = {
   items: CartItem[]
   addItem: (i: CartItem) => void
@@ -35,7 +43,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         copy[idx] = { ...copy[idx], qty: copy[idx].qty + i.qty }
         return copy
       }
-      return [...prev, i]
+      return [...prev, i] // ✅ ตรงนี้ไม่ต้อง newItem แล้ว
     })
 
   const remove = (id: string) => setItems(prev => prev.filter(i => i.id !== id))

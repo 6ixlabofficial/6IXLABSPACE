@@ -3,10 +3,17 @@
 
 import Link from 'next/link'
 import { useCart } from '@/components/CartContext'
+import { useEffect, useState } from 'react'
 
 export default function CartButton() {
   const { items } = useCart()
+
+  // ให้ client render รอบแรกเหมือน SSR (0) เพื่อลด hydration mismatch
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
   const count = items?.reduce((n, i) => n + (i.qty ?? 1), 0) ?? 0
+  const display = mounted ? count : 0  // รอบแรก = 0, mount แล้วค่อยเป็นค่าจริง
 
   return (
     <Link
@@ -31,14 +38,15 @@ export default function CartButton() {
         <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h7.72a2 2 0 0 0 2-1.61L22 7H6"></path>
       </svg>
 
-      {/* แสดง badge เสมอ แต่ซ่อนถ้า count = 0 */}
+      {/* แสดง badge เสมอ แต่ซ่อนถ้า 0; ใช้ display ที่เท่ากับ 0 ก่อน hydrate */}
       <span
-        aria-hidden={count === 0}
+        suppressHydrationWarning
+        aria-hidden={display === 0}
         className={`absolute -top-1.5 -right-1.5 min-w-[1rem] h-4 px-1 rounded-full
                     text-[10px] flex items-center justify-center
-                    ${count === 0 ? 'invisible' : 'bg-neutral-900 text-white'}`}
+                    ${display === 0 ? 'invisible' : 'bg-neutral-900 text-white'}`}
       >
-        {count}
+        {display}
       </span>
     </Link>
   )

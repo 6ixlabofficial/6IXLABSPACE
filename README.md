@@ -1,5 +1,5 @@
 
-# 6ixlab Minimal Shop (Catalog Only, Free)
+# 6ixlab (Catalog Only, Free)
 
 A free, no-backend product catalog built with **Next.js 14 + Tailwind**.  
 Deploy to **Vercel** for free — no payment system, no maintenance.

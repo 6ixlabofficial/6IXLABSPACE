@@ -3,22 +3,23 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useCart } from '@/components/CartContext'
+import Image from 'next/image'                   // ✅ ใช้ next/image
+import { useCart, type CartItem } from '@/components/CartContext'
 
 export default function CheckoutPage() {
-  // ✓ ใช้ตะกร้าจริงจาก Context
   const { items, setQty, remove, total, clear } = useCart()
 
-  // ✅ บรีฟงาน (แทน name/contact เดิม)
+  // ✅ ช่องบรีฟงาน (ใช้แทนข้อมูลลูกค้า)
   const [brief, setBrief] = useState('')
 
-  // Discord (optional)
+  // (ทางเลือก) ถ้า login ด้วย Discord แล้ว
   const [discordUserId, setDiscordUserId] = useState<string | null>(null)
 
-  // สถานะส่งออเดอร์
-  const [loading, setLoading] = useState(false)
+  // ป้องกัน hydration mismatch
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
 
-  // โหลดสถานะล็อกอิน Discord ถ้ามี endpoint /api/me
+  // โหลดสถานะล็อกอิน Discord (ถ้ามี)
   useEffect(() => {
     fetch('/api/me')
       .then((r) => (r.ok ? r.json() : { discordUserId: null }))
@@ -26,29 +27,30 @@ export default function CheckoutPage() {
       .catch(() => setDiscordUserId(null))
   }, [])
 
-  const loginWithDiscord = () => {
-    window.location.href = '/api/discord/login'
-  }
+  const loginWithDiscord = () => { window.location.href = '/api/discord/login' }
+
+  const [loading, setLoading] = useState(false)
 
   async function placeOrder() {
-    if (items.length === 0) {
-      alert('ตะกร้าของคุณยังว่าง')
+    if (!brief.trim()) {
+      alert('กรุณาพิมพ์บรีฟงานอย่างน้อย 1 บรรทัด')
       return
     }
-    if (brief.trim().length < 10) {
-      alert('กรุณาพิมพ์บรีฟงานอย่างน้อย 10 ตัวอักษร')
+    if (items.length === 0) {
+      alert('ตะกร้าของคุณยังว่าง')
       return
     }
 
     setLoading(true)
 
     const payload = {
-      // ไม่ต้องส่ง orderId → backend จะ gen ORD-000001 ให้เอง
-      items: items.map(({ id, name, qty, price }) => ({ id, name, qty, price })),
+      // ไม่ต้องส่ง orderId ก็ได้ ให้ API gen เอง
+      items: items.map(({ id, name, qty, price, image }: CartItem) => ({
+        id, name, qty, price, image, // image ไม่มีได้
+      })),
       customer: {
-        name: 'ลูกค้าเว็บ',                         // ให้ schema ผ่านแบบเรียบง่าย
-        contact: `BRIEF: ${brief.trim()}`,          // ส่งบรีฟไปใน contact (มี prefix ชัดเจน)
-        discordUserId: discordUserId ?? undefined,  // ถ้ามีการล็อกอิน Discord
+        brief: brief.trim(),                // ✅ ส่งบรีฟงาน
+        discordUserId: discordUserId ?? undefined,
       },
     }
 
@@ -56,24 +58,26 @@ export default function CheckoutPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
-    })
-      .then((r) => r.json())
-      .catch(() => ({ ok: false }))
+    }).then((r) => r.json()).catch(() => ({ ok: false }))
 
     setLoading(false)
 
     if (!res.ok) {
-      alert('สั่งซื้อไม่สำเร็จ กรุณาลองใหม่')
+      alert('สั่งซื้อไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')
       return
     }
 
     if (res.inviteUrl) {
-      // ถ้าลูกค้ายังไม่ได้อยู่ในเซิร์ฟเวอร์ ให้ใช้ลิงก์นี้เข้าร้าน
-      window.open(res.inviteUrl, '_blank')
+      window.open(res.inviteUrl, '_blank') // เชิญเข้าห้องใน Discord
     }
 
-    clear() // เคลียร์ตะกร้าหลังสั่งซื้อสำเร็จ
-    alert('สร้างห้องใน Discord สำเร็จ! ทีมงานจะคุยกับคุณในห้องนั้น')
+    clear()
+    alert('สร้างห้องใน Discord สำเร็จ! ทีมงานจะติดต่อคุณในห้องนั้น')
+  }
+
+  if (!mounted) {
+    // กัน hydration mismatch ตอน initial render
+    return null
   }
 
   return (
@@ -99,26 +103,48 @@ export default function CheckoutPage() {
             <ul className="space-y-3 text-sm">
               {items.map((item) => (
                 <li key={item.id} className="flex items-center justify-between gap-3">
-                  <div className="flex-1">
-                    <div className="font-medium">{item.name}</div>
-                    <div className="text-neutral-500">
-                      {item.price.toLocaleString('th-TH')} ฿ / ชิ้น
+                  {/* ซ้าย: รูป + ชื่อ/ราคา */}
+                  <div className="flex-1 flex items-center gap-3 min-w-0">
+                    <div className="h-12 w-12 md:h-16 md:w-16 overflow-hidden rounded-md border border-neutral-200 bg-neutral-50 shrink-0">
+                      {item.image ? (
+                        <Image
+                          src={item.image}
+                          alt={item.name}
+                          width={120}
+                          height={150}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-[10px] text-neutral-400">
+                          no image
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="font-medium truncate">{item.name}</div>
+                      <div className="text-neutral-500">
+                        {item.price.toLocaleString('th-TH')} ฿ / ชิ้น
+                      </div>
                     </div>
                   </div>
 
+                  {/* ขวา: ปุ่มจำนวน + ลบ */}
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setQty(item.id, item.qty - 1)}
-                      className="rounded-md border px-2 hover:bg-neutral-50"
+                      onClick={() => setQty(item.id, Math.max(1, item.qty - 1))} // ✅ กันติด 0
+                      className="rounded-md border px-2 hover:bg-neutral-50 disabled:opacity-40"
                       aria-label="ลดจำนวน"
+                      disabled={loading}
                     >
                       −
                     </button>
                     <span className="tabular-nums w-6 text-center">{item.qty}</span>
                     <button
                       onClick={() => setQty(item.id, item.qty + 1)}
-                      className="rounded-md border px-2 hover:bg-neutral-50"
+                      className="rounded-md border px-2 hover:bg-neutral-50 disabled:opacity-40"
                       aria-label="เพิ่มจำนวน"
+                      disabled={loading}
                     >
                       +
                     </button>
@@ -126,7 +152,8 @@ export default function CheckoutPage() {
 
                   <button
                     onClick={() => remove(item.id)}
-                    className="text-red-600 hover:underline"
+                    className="text-red-600 hover:underline disabled:opacity-40"
+                    disabled={loading}
                   >
                     ลบ
                   </button>
@@ -142,24 +169,17 @@ export default function CheckoutPage() {
         )}
       </div>
 
-      {/* ====== บรีฟงาน (ช่องเดียว) ====== */}
+      {/* ====== บรีฟงาน ====== */}
       <div className="rounded-lg border border-neutral-200 p-4 mb-6">
         <div className="mb-3 font-medium">บรีฟงาน</div>
-        <label htmlFor="brief" className="sr-only">รายละเอียดงาน</label>
         <textarea
-          id="brief"
-          rows={6}
-          className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900"
-          placeholder={`เช่น
-- ประเภทสินค้า: เสื้อ/ฮู้ด/สูท
-- สี/โทน: ดำ เทา ขาว
-- โลโก้/ลาย: แนบลิงก์ภาพ/ตัวอย่าง
-- ข้อจำกัด/กำหนดส่ง: ...`}
+          className="min-h-[140px] rounded-md border border-neutral-300 px-3 py-2 text-sm w-full"
+          placeholder="อธิบายรายละเอียดที่ต้องการ เช่น ประเภทเสื้อ/สี/ลาย/โลโก้/ขนาด ฯลฯ"
           value={brief}
-          onChange={(e) => setBrief((e.target as HTMLTextAreaElement).value)}
+          onChange={(e) => setBrief(e.target.value)}
         />
         <p className="mt-2 text-xs text-neutral-500">
-          ใส่รายละเอียดงานได้เต็มที่ ถ้ามีลิงก์ภาพตัวอย่างแนบมาได้เลย
+          *ยิ่งบรีฟละเอียด งานจะยิ่งตรงใจและทำได้เร็วขึ้น
         </p>
       </div>
 
@@ -167,8 +187,8 @@ export default function CheckoutPage() {
       <div className="rounded-lg border border-neutral-200 p-4 mb-6">
         <div className="mb-3 font-medium">เชื่อมต่อ Discord (ทางเลือก)</div>
         {discordUserId ? (
-          <div className="flex items-center justify-between">
-            <span className="text-sm">
+          <div className="flex items-center justify-between text-sm">
+            <span>
               เชื่อมต่อแล้ว:{' '}
               <code className="px-1 rounded bg-neutral-100">{discordUserId}</code>
             </span>
@@ -189,8 +209,8 @@ export default function CheckoutPage() {
       {/* ====== ปุ่มยืนยันสั่งซื้อ ====== */}
       <div className="flex items-center gap-3">
         <button
-          disabled={loading}
           onClick={placeOrder}
+          disabled={loading}
           className="rounded-md bg-neutral-900 text-white px-5 py-3 hover:bg-neutral-800 disabled:opacity-50"
         >
           {loading ? 'กำลังสร้างห้อง…' : 'ยืนยันสั่งซื้อ'}

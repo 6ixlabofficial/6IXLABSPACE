@@ -15,19 +15,22 @@ const ALLOW_PERMS = '93184' // VIEW+SEND+READ_HISTORY+ATTACH+EMBED
 const snowflake = z.string().regex(/^\d{17,20}$/, 'invalid discord id')
 
 /* ========= SCHEMA ========= */
+// เปลี่ยนมาใช้ brief (ต้องมี) และให้ name/contact เป็น optional
 const OrderSchema = z.object({
-  orderId: z.string().optional(),   // 👈 ทำให้ optional
+  orderId: z.string().optional(), // ให้ client ส่งมาก็ได้ ไม่ส่งมาก็ gen เอง
   items: z.array(
     z.object({
       id: z.string().min(1).max(64),
       name: z.string().min(1).max(200),
       qty: z.number().int().min(1).max(999),
       price: z.number().int().min(0).max(1_000_000),
+      image: z.string().url().optional(), // ถ้าส่งรูปมากับไอเท็ม (optional)
     })
   ).min(1).max(50),
   customer: z.object({
-    name: z.string().min(1).max(200),
-    contact: z.string().min(1).max(300),
+    brief: z.string().min(1).max(2000), // ✅ บรีฟงาน (บังคับ)
+    name: z.string().max(200).optional(),
+    contact: z.string().max(300).optional(),
     discordUserId: snowflake.optional(),
   }),
 })
@@ -64,26 +67,31 @@ function buildOverwrites({
   customerUserId?: string
 }) {
   const overwrites: Array<{ id: string; type: 0 | 1; allow?: string; deny?: string }> = []
-  overwrites.push({ id: guildId, type: 0, deny: '1024' }) // ❌ ปิด @everyone
-  if (staffRoleId) overwrites.push({ id: staffRoleId, type: 0, allow: ALLOW_PERMS }) // ✅ staff
-  if (customerUserId) overwrites.push({ id: customerUserId, type: 1, allow: ALLOW_PERMS }) // ✅ ลูกค้า
+  // ❌ ปิด @everyone
+  overwrites.push({ id: guildId, type: 0, deny: '1024' /* VIEW_CHANNEL */ })
+  // ✅ staff
+  if (staffRoleId) overwrites.push({ id: staffRoleId, type: 0, allow: ALLOW_PERMS })
+  // ✅ ลูกค้า
+  if (customerUserId) overwrites.push({ id: customerUserId, type: 1, allow: ALLOW_PERMS })
   return overwrites
 }
 
 function buildEmbed(order: z.infer<typeof OrderSchema>, total: number) {
+  // รวมรายการให้สั้นกระชับ
+  const list =
+    order.items.map(i => `• ${i.name} × ${i.qty} — ${i.price.toLocaleString('th-TH')}฿`).join('\n') || '-'
+
   return {
     title: `รายละเอียดออเดอร์ #${order.orderId}`,
     color: 0x111827,
     fields: [
-      { name: 'ลูกค้า', value: order.customer.name, inline: true },
-      { name: 'ติดต่อ', value: order.customer.contact, inline: true },
+      ...(order.customer.name ? [{ name: 'ลูกค้า', value: order.customer.name, inline: true }] : []),
+      ...(order.customer.contact ? [{ name: 'ติดต่อ', value: order.customer.contact, inline: true }] : []),
       ...(order.customer.discordUserId
         ? [{ name: 'Discord', value: `<@${order.customer.discordUserId}>`, inline: true }]
         : []),
-      {
-        name: 'รายการ',
-        value: order.items.map(i => `• ${i.name} × ${i.qty} — ${i.price.toLocaleString('th-TH')}฿`).join('\n') || '-',
-      },
+      { name: 'บรีฟงาน', value: order.customer.brief.slice(0, 1024) }, // ✅ แสดงบรีฟ
+      { name: 'รายการ', value: list.slice(0, 1024) },
       { name: 'รวม', value: `**${total.toLocaleString('th-TH')}฿**`, inline: true },
     ],
     footer: { text: '6IXLAB Orders' },
@@ -112,7 +120,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'UNSUPPORTED_MEDIA_TYPE' }, { status: 415 })
     }
 
-    // --- Rate limit ---
+    // --- Rate limit (Upstash) ---
     const ip =
       req.ip ??
       req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
@@ -135,11 +143,21 @@ export async function POST(req: NextRequest) {
     }
 
     // Parse & validate
-    const bodyRaw = await req.json()
-    const body = OrderSchema.parse(bodyRaw)
+    const raw = await req.json()
+    const parsed = OrderSchema.parse(raw)
 
-    // ✅ ถ้า client ไม่ส่ง orderId → gen จาก Redis
-    const orderId = body.orderId ?? await nextOrderId()
+    // ถ้า client ไม่ส่ง orderId → gen จาก Redis
+    const orderId = parsed.orderId ?? await nextOrderId()
+
+    // Topic: โชว์บรีฟย่อ ๆ + ชื่อ(ถ้ามี)
+    const topicParts = [
+      `Order #${orderId}`,
+      parsed.customer.name ? `• ${parsed.customer.name}` : null,
+      parsed.customer.contact ? `• ${parsed.customer.contact}` : null,
+      `• ${parsed.customer.brief}` // ใส่บรีฟ (Discord limit 1024)
+    ].filter(Boolean)
+
+    const topic = topicParts.join(' ').slice(0, 1024)
 
     // 1) สร้าง channel
     const createChannelRes = await fetchWithTimeout(
@@ -154,11 +172,11 @@ export async function POST(req: NextRequest) {
           name: normalizeChannelName(`order-${orderId}`),
           type: 0,
           parent_id: CATEGORY_ID,
-          topic: `Order #${orderId} • ${body.customer.name} • ${body.customer.contact}`,
+          topic,
           permission_overwrites: buildOverwrites({
             guildId: GUILD_ID,
             staffRoleId: STAFF_ROLE_ID,
-            customerUserId: body.customer.discordUserId,
+            customerUserId: parsed.customer.discordUserId,
           }),
         }),
         timeoutMs: 15_000,
@@ -174,7 +192,7 @@ export async function POST(req: NextRequest) {
     const channel = (await createChannelRes.json()) as { id: string }
 
     // 2) โพสต์ Embed
-    const total = body.items.reduce((s, i) => s + i.price * i.qty, 0)
+    const total = parsed.items.reduce((s, i) => s + i.price * i.qty, 0)
     await fetchWithTimeout(
       `https://discord.com/api/v10/channels/${channel.id}/messages`,
       {
@@ -182,13 +200,13 @@ export async function POST(req: NextRequest) {
         headers: { 'Content-Type': 'application/json', Authorization: `Bot ${BOT_TOKEN}` },
         body: JSON.stringify({
           content: `🛒 **Order #${orderId}**`,
-          embeds: [buildEmbed({ ...body, orderId }, total)],
+          embeds: [buildEmbed({ ...parsed, orderId }, total)],
         }),
         timeoutMs: 15_000,
       }
     )
 
-    // 3) สร้าง invite
+    // 3) สร้าง invite (optional)
     let inviteUrl: string | undefined
     const inviteRes = await fetchWithTimeout(
       `https://discord.com/api/v10/channels/${channel.id}/invites`,
