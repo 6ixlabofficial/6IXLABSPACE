@@ -179,7 +179,7 @@ export default function CheckoutPage() {
           onChange={(e) => setBrief(e.target.value)}
         />
         <p className="mt-2 text-xs text-neutral-500">
-          *ยิ่งบรีฟละเอียด งานจะยิ่งตรงใจและทำได้เร็วขึ้น
+          *คุณสามารถบรีฟงานเบื้องต้นในช่องนี้ และทีมงานจะดำเนินการพูดคุยรายละเอียดเพิ่มเติมกับท่านต่อในห้อง Discord
         </p>
       </div>
 
@@ -193,7 +193,7 @@ export default function CheckoutPage() {
               <code className="px-1 rounded bg-neutral-100">{discordUserId}</code>
             </span>
             <span className="text-xs text-neutral-500">
-              *จะเปิดห้องเฉพาะให้คุณโดยอัตโนมัติ
+              *เมื่อยืนยันสั่งซื้อเรียบร้อย จะเปิดห้องพูดคุยใน Discord ให้คุณโดยอัตโนมัติ
             </span>
           </div>
         ) : (
