@@ -13,6 +13,8 @@ export const COLLECTIONS: CollectionItem[] = [
     images: [
       '/images/collections/sowhat/sowhat-1.png',
       '/images/collections/sowhat/sowhat-2.png',
+      '/images/collections/sowhat/sowhat-3.png',
+      '/images/collections/sowhat/sowhat-4.png',
     ],
   },
 

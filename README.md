@@ -33,3 +33,4 @@ Place your product images in `/public/images/` then reference with `/images/your
 - This is **catalog only** (no checkout/payment).
 - All assets are local. Tailwind is included.
 - Images are SVG placeholders — replace with real photos (1200×1500 suggested).
+!
