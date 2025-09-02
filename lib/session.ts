@@ -3,8 +3,9 @@ import { cookies } from 'next/headers'
 const COOKIE_NAME = 'discordUserId'
 const MAX_AGE = 60 * 60 * 24 * 7 // 7 วัน
 
-export function setDiscordUserId(id: string) {
-  cookies().set({
+export async function setDiscordUserId(id: string) {
+  const store = await cookies()
+  store.set({
     name: COOKIE_NAME,
     value: id,
     httpOnly: true,
@@ -14,11 +15,13 @@ export function setDiscordUserId(id: string) {
   })
 }
 
-export function getDiscordUserId(): string | null {
-  const c = cookies().get(COOKIE_NAME)
+export async function getDiscordUserId(): Promise<string | null> {
+  const store = await cookies()
+  const c = store.get(COOKIE_NAME)
   return c?.value ?? null
 }
 
-export function clearDiscordUserId() {
-  cookies().delete(COOKIE_NAME)
+export async function clearDiscordUserId() {
+  const store = await cookies()
+  store.delete(COOKIE_NAME)
 }

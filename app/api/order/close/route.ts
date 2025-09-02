@@ -4,6 +4,12 @@ import { z } from 'zod'
 import { ratelimit } from '@/lib/ratelimit' // ใช้ตัวเดียวกับ /api/order
 // ต้องมี env: UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 
+function getClientIp(req: NextRequest) {
+  const xff = req.headers.get('x-forwarded-for');
+  const ipFromXff = xff?.split(',')[0]?.trim();
+  return ipFromXff ?? req.headers.get('x-real-ip') ?? 'unknown';
+}
+
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN!
 const ADMIN_SECRET = process.env.ADMIN_SECRET!
 
@@ -38,11 +44,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Rate limit (Upstash) — ต่อ IP ผู้เรียก
-    const ip =
-      req.ip ??
-      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
-      req.headers.get('x-real-ip') ??
-      'unknown'
+    const ip = getClientIp(req);
     const { success, limit, remaining, reset } = await ratelimit.limit(`close:${ip}`)
     if (!success) {
       return NextResponse.json(

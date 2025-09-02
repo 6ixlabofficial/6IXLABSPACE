@@ -4,6 +4,13 @@ import { z } from 'zod'
 import { ratelimit } from '@/lib/ratelimit'
 import { redis } from '@/lib/redis'
 
+// --- Helper: get client IP safely from headers (works on Vercel/Edge) ---
+function getClientIp(req: NextRequest) {
+  const xff = req.headers.get('x-forwarded-for')
+  const ipFromXff = xff?.split(',')[0]?.trim()
+  return ipFromXff ?? req.headers.get('x-real-ip') ?? 'unknown'
+}
+
 /* ========= ENV ========= */
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN!
 const GUILD_ID = process.env.DISCORD_GUILD_ID!
@@ -121,12 +128,7 @@ export async function POST(req: NextRequest) {
     }
 
     // --- Rate limit (Upstash) ---
-    const ip =
-      req.ip ??
-      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
-      req.headers.get('x-real-ip') ??
-      'unknown'
-
+    const ip = getClientIp(req)
     const { success, limit, remaining, reset } = await ratelimit.limit(`order:${ip}`)
     if (!success) {
       return NextResponse.json(

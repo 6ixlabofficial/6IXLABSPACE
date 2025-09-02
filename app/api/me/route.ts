@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server'
 import { getDiscordUserId, clearDiscordUserId } from '@/lib/session'
 
 export async function GET() {
-  const id = getDiscordUserId()
-  return NextResponse.json({ discordUserId: id })
+  const id = await getDiscordUserId()
+  return Response.json({ discordUserId: id })
 }
 
 export async function DELETE() {
