@@ -20,7 +20,12 @@ const prompt = Prompt({
 export const metadata: Metadata = {
   title: '6IXLAB - Premium Clothing & Design',
   description: 'รับออกแบบชุด, งานกราฟิก, โลโก้ต่างๆ สำหรับเกม FIVEM และงานกราฟฟิกทั่วไป',
-}
+icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/apple-icon.png',
+  },
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 
 /** ใส่ลิงก์ปลายทางให้แต่ละสไลด์ได้เลย */
 const SLIDES = [
-  { src: '/hero/slide-1.png', url: '/products/1' },                // internal
+  { src: '/hero/slide-1.png', url: '/#shop' },                // internal
   { src: '/hero/slide-2.png', url: 'https://discord.gg/eYGJRr44qj' } // external
 ] as const
 

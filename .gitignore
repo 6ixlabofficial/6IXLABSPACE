@@ -9,4 +9,5 @@
 npm-debug.log*
 yarn-debu
 
+.env
 .env.local

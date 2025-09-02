@@ -1,0 +1,40 @@
+# ================================
+# 🔧 Line Endings (EOL)
+# ================================
+# บังคับไฟล์โค้ดทั้งหมดให้ใช้ LF เสมอใน repo
+*.js     text eol=lf
+*.jsx    text eol=lf
+*.ts     text eol=lf
+*.tsx    text eol=lf
+*.json   text eol=lf
+*.css    text eol=lf
+*.scss   text eol=lf
+*.md     text eol=lf
+*.yml    text eol=lf
+*.yaml   text eol=lf
+*.html   text eol=lf
+
+# ================================
+# 🔧 Binary Files (ไม่แปลงบรรทัด)
+# ================================
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.ico    binary
+*.webp   binary
+*.svg    binary
+*.ttf    binary
+*.woff   binary
+*.woff2  binary
+*.eot    binary
+*.pdf    binary
+*.mp4    binary
+*.mp3    binary
+
+# ================================
+# 📦 Node / Lockfiles
+# ================================
+package-lock.json text eol=lf
+pnpm-lock.yaml    text eol=lf
+yarn.lock         text eol=lf
