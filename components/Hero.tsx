@@ -3,13 +3,18 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 
+/** ใส่ลิงก์ปลายทางให้แต่ละสไลด์ได้เลย */
 const SLIDES = [
-  '/hero/slide-1.png',
-  '/hero/slide-2.png',
+  { src: '/hero/slide-1.png', url: '/products/1' },                // internal
+  { src: '/hero/slide-2.png', url: 'https://discord.gg/eYGJRr44qj' } // external
 ] as const
 
 const INTERVAL_MS = 6000
 const SWIPE_THRESHOLD = 40 // ปัดเกิน ~40px ถึงจะเลื่อน
+
+function isExternal(url: string) {
+  return /^https?:\/\//i.test(url)
+}
 
 export default function Hero() {
   const [index, setIndex] = useState(0)
@@ -47,7 +52,6 @@ export default function Hero() {
       <div className="grid items-center gap-8 md:grid-cols-2">
         {/* ซ้าย: ข้อความ (ลดไซส์หัวข้อเล็กน้อย) */}
         <div>
-          {/* เดิม text-4xl md:text-6xl → ลดเป็น text-3xl md:text-5xl */}
           <h1 className="font-oswald text-3xl md:text-5xl leading-tight">
             6IXLAB - Premium Clothing & Design
           </h1>
@@ -76,38 +80,46 @@ export default function Hero() {
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
         >
-          {/* เฟดสไลด์ */}
-          {SLIDES.map((src, i) => (
-            <div
-              key={src}
-              className={`absolute inset-0 transition-opacity duration-700 ${
-                i === index ? 'opacity-100' : 'opacity-0'
-              }`}
-            >
-              <Image
-                src={src}
-                alt={`slide-${i + 1}`}
-                fill
-                className="object-cover"
-                sizes="(min-width:1024px) 640px, 100vw"
-                priority={i === 0}
-              />
-            </div>
-          ))}
+          {/* สไลด์ที่คลิกได้ */}
+          {SLIDES.map((slide, i) => {
+            const external = isExternal(slide.url)
+            return (
+              <Link
+                key={slide.src}
+                href={slide.url}
+                target={external ? '_blank' : undefined}
+                rel={external ? 'noopener noreferrer' : undefined}
+                prefetch={false}
+                className={`absolute inset-0 block transition-opacity duration-700 ${
+                  i === index ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                }`}
+                aria-label={`Open slide ${i + 1}`}
+              >
+                <Image
+                  src={slide.src}
+                  alt={`slide-${i + 1}`}
+                  fill
+                  className="object-cover"
+                  sizes="(min-width:1024px) 640px, 100vw"
+                  priority={i === 0}
+                />
+              </Link>
+            )
+          })}
 
-          {/* ลูกศรโปร่งใส */}
+          {/* ปุ่มเลื่อน (กันคลิกทะลุลิงก์) */}
           {SLIDES.length > 1 && (
             <>
               <button
-                onClick={goPrev}
-                className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/1 text-white backdrop-blur px-3 py-2 text-lg hover:bg-white/30"
+                onClick={(e) => { e.stopPropagation(); e.preventDefault(); goPrev() }}
+                className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/10 text-white backdrop-blur px-3 py-2 text-lg hover:bg-white/30"
                 aria-label="Previous"
               >
                 ‹
               </button>
               <button
-                onClick={goNext}
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/1 text-white backdrop-blur px-3 py-2 text-lg hover:bg-white/30"
+                onClick={(e) => { e.stopPropagation(); e.preventDefault(); goNext() }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/10 text-white backdrop-blur px-3 py-2 text-lg hover:bg-white/30"
                 aria-label="Next"
               >
                 ›
@@ -120,7 +132,7 @@ export default function Hero() {
             {SLIDES.map((_, i) => (
               <button
                 key={i}
-                onClick={() => goTo(i)}
+                onClick={(e) => { e.stopPropagation(); e.preventDefault(); goTo(i) }}
                 className={`h-2.5 w-2.5 rounded-full transition ${
                   i === index ? 'bg-white' : 'bg-white/40 hover:bg-white/60'
                 }`}
