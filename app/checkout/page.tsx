@@ -242,14 +242,15 @@ export default function CheckoutPage() {
   )}
 </div>
 
-      {/* ====== บรีฟงาน ====== */}
+{/* ====== บรีฟงาน ====== */}
 <div className="rounded-lg border border-neutral-200 p-4 mb-6">
   <div className="mb-3 font-medium">บรีฟงาน</div>
   <textarea
-    className="min-h-[140px] rounded-md border border-neutral-300 px-3 py-2 text-sm w-full"
-    placeholder="อธิบายรายละเอียดที่ต้องการ เช่น ประเภทเสื้อ/สี/ลาย/โลโก้/ขนาด ฯลฯ"
+    className="min-h-[140px] rounded-md border border-neutral-300 px-3 py-2 text-sm w-full disabled:bg-neutral-100 disabled:text-neutral-400"
+    placeholder="กรุณาเชื่อมต่อ Discord ก่อนจึงจะสามารถพิมพ์บรีฟงานได้"
     value={brief}
     onChange={(e) => setBrief(e.target.value)}
+    disabled={!discordUserId}  // ✅ ล็อกถ้ายังไม่ได้ login
   />
   <p className="mt-2 text-xs text-neutral-500">
     *คุณสามารถบรีฟงานเบื้องต้นในช่องนี้ และทีมงานจะคุยรายละเอียดเพิ่มเติมกับคุณต่อในห้อง Discord
