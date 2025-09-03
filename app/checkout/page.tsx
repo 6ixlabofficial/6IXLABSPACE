@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useCart, type CartItem } from '@/components/CartContext'
 
-const INVITE_URL = 'https://discord.gg/yourInvite' // แก้เป็น invite ของกิลด์คุณ
+const INVITE_URL = 'https://discord.gg/ZAPXTwUYmW' // แก้เป็น invite ของกิลด์คุณ
 
 type GuildState = { member: boolean; pending: boolean; ready: boolean }
 
@@ -156,7 +156,7 @@ export default function CheckoutPage() {
                         className="rounded-md bg-neutral-900 text-white px-3 py-1.5 hover:bg-neutral-800">
                   Join Discord Server
                 </button>
-                <span className="text-neutral-500">เข้ากิลด์ก่อน แล้วค่อยสั่งซื้อ</span>
+                <span className="text-neutral-500">รบกวนลูกค้าต้องเข้า Discord ก่อนสั่งซื้อสินค้า</span>
               </div>
             )}
 
