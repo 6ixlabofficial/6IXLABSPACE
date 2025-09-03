@@ -5,9 +5,10 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useCart, type CartItem } from '@/components/CartContext'
-import HowToOrder from '@/components/HowToOrder'
+import { put } from '@vercel/blob' // ✅ ใช้สำหรับอัปโหลดไฟล์ไป Vercel Blob
 
-const INVITE_URL = 'https://discord.gg/ZAPXTwUYmW' // แก้เป็น invite ของกิลด์คุณ
+// แก้เป็นลิงก์เชิญจริงของกิลด์คุณ
+const INVITE_URL = 'https://discord.gg/yourInvite'
 
 type GuildState = { member: boolean; pending: boolean; ready: boolean }
 
@@ -19,6 +20,9 @@ export default function CheckoutPage() {
   const [discordUserId, setDiscordUserId] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  // ✅ file แนบ (อัปโหลดขึ้น Blob ก่อนส่งออเดอร์)
+  const [file, setFile] = useState<File | null>(null)
 
   // ✅ สถานะกิลด์สำหรับ Gate (A)
   const [guild, setGuild] = useState<GuildState>({ member: false, pending: false, ready: false })
@@ -57,7 +61,7 @@ export default function CheckoutPage() {
 
   useEffect(() => { checkGuildOnce() }, [discordUserId])
 
-  // ✅ ปรับให้ทนขึ้น: poll สูงสุด ~40s และหยุดเองเมื่อ ready
+  // เชิญ + poll สถานะจนกว่าจะพร้อม (สูงสุด ~40s)
   function openInviteAndPoll() {
     window.open(INVITE_URL, '_blank')
     if (pollRef.current) clearInterval(pollRef.current)
@@ -70,14 +74,14 @@ export default function CheckoutPage() {
         if (g.ready && pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
         return g
       })
-      if (ticks > 10 && pollRef.current) { // 10 * 4s ~= 40s
+      if (ticks > 10 && pollRef.current) { // 10 * 4s ≈ 40s
         clearInterval(pollRef.current)
         pollRef.current = null
       }
     }, 4000)
   }
 
-  // ✅ รีเฟรชอัตโนมัติเมื่อกลับมาโฟกัส/แท็บ visible (ลูกค้ากดยอมรับกฎในอีกแท็บ)
+  // รีเฟรชอัตโนมัติเมื่อโฟกัสหน้า/แท็บกลับมา visible
   useEffect(() => {
     const onFocus = () => {
       checkGuildOnce()
@@ -124,13 +128,25 @@ export default function CheckoutPage() {
 
     setLoading(true)
 
+    // ✅ ถ้ามีไฟล์ → อัปไป Vercel Blob (public) แล้วได้ URL
+    let fileUrl: string | undefined
+    if (file) {
+      try {
+        const { url } = await put(file.name, file, { access: 'public' })
+        fileUrl = url
+      } catch (err) {
+        console.error('upload failed', err)
+        alert('อัปโหลดไฟล์ไม่สำเร็จ')
+      }
+    }
+
     const payload = {
       items: items.map(({ id, name, qty, price, image }: CartItem) => ({
         id, name, qty, price,
-        // ส่งเฉพาะกรณีเป็น URL เต็ม กัน INVALID_PAYLOAD
+        // ส่ง image เฉพาะกรณีเป็น URL เต็ม กัน INVALID_PAYLOAD
         image: (image && /^https?:\/\//i.test(image)) ? image : undefined,
       })),
-      customer: { brief: brief.trim(), discordUserId }
+      customer: { brief: brief.trim(), discordUserId, fileUrl } // ✅ แนบ URL ไฟล์ (ถ้ามี)
     }
 
     const res = await fetch('/api/order', {
@@ -153,6 +169,7 @@ export default function CheckoutPage() {
     }
 
     clear()
+    setFile(null)
     alert('สร้างห้องใน Discord สำเร็จ! ถ้ามองไม่เห็น ให้กดยอมรับกฎ หรือกด “ตรวจสิทธิ์อีกครั้ง”.')
   }
 
@@ -173,93 +190,126 @@ export default function CheckoutPage() {
   return (
     <main className="mx-auto max-w-3xl px-4 md:px-8 py-10">
       <h1 className="text-2xl md:text-3xl font-oswald mb-6">Checkout</h1>
-      
-      {/* คู่มือแบบเต็ม (พับ/กางได้) */}
-      <HowToOrder className="mb-6" />
-
-      {/* ถ้าอยากแทรกโหมดสั้นในตำแหน่งอื่น */}
-      {/* <HowToOrder showMini className="mb-6" /> */}
 
       {/* ====== ตะกร้า ====== */}
-<div className="rounded-lg border border-neutral-200 p-4 mb-6">
-  <div className="mb-3 font-medium">ตะกร้าของคุณ</div>
+      <div className="rounded-lg border border-neutral-200 p-4 mb-6">
+        <div className="mb-3 font-medium">ตะกร้าของคุณ</div>
 
-  {items.length === 0 ? (
-    <div className="flex items-center justify-between text-sm text-neutral-500">
-      <span>ไม่มีสินค้าในตะกร้า</span>
-      <Link
-        href="/"
-        className="rounded-md border border-neutral-300 px-3 py-1.5 text-neutral-800 hover:border-neutral-900"
-      >
-        เลือกสินค้าต่อ
-      </Link>
-    </div>
-  ) : (
-    <>
-      <ul className="space-y-3 text-sm">
-        {items.map((item) => (
-          <li key={item.id} className="flex items-center justify-between gap-3">
-            <div className="flex-1 flex items-center gap-3 min-w-0">
-              <div className="h-12 w-12 md:h-16 md:w-16 overflow-hidden rounded-md border border-neutral-200 bg-neutral-50 shrink-0">
-                {item.image ? (
-                  <Image
-                    src={item.image}
-                    alt={item.name}
-                    width={120}
-                    height={150}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-[10px] text-neutral-400">
-                    no image
+        {items.length === 0 ? (
+          <div className="flex items-center justify-between text-sm text-neutral-500">
+            <span>ไม่มีสินค้าในตะกร้า</span>
+            <Link
+              href="/"
+              className="rounded-md border border-neutral-300 px-3 py-1.5 text-neutral-800 hover:border-neutral-900"
+            >
+              เลือกสินค้าต่อ
+            </Link>
+          </div>
+        ) : (
+          <>
+            <ul className="space-y-3 text-sm">
+              {items.map((item) => (
+                <li key={item.id} className="flex items-center justify-between gap-3">
+                  {/* ซ้าย: รูป + ชื่อ/ราคา */}
+                  <div className="flex-1 flex items-center gap-3 min-w-0">
+                    <div className="h-12 w-12 md:h-16 md:w-16 overflow-hidden rounded-md border border-neutral-200 bg-neutral-50 shrink-0">
+                      {item.image ? (
+                        <Image
+                          src={item.image}
+                          alt={item.name}
+                          width={120}
+                          height={150}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-[10px] text-neutral-400">
+                          no image
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="font-medium truncate">{item.name}</div>
+                      <div className="text-neutral-500">
+                        {item.price.toLocaleString('th-TH')} ฿ / ชิ้น
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
-              <div className="min-w-0">
-                <div className="font-medium truncate">{item.name}</div>
-                <div className="text-neutral-500">
-                  {item.price.toLocaleString('th-TH')} ฿ / ชิ้น
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setQty(item.id, Math.max(1, item.qty - 1))}
-                className="rounded-md border px-2 hover:bg-neutral-50">−</button>
-              <span className="tabular-nums w-6 text-center">{item.qty}</span>
-              <button onClick={() => setQty(item.id, item.qty + 1)}
-                className="rounded-md border px-2 hover:bg-neutral-50">+</button>
-            </div>
-            <button onClick={() => remove(item.id)}
-              className="text-red-600 hover:underline">ลบ</button>
-          </li>
-        ))}
-      </ul>
-      <div className="mt-4 flex items-center justify-between font-medium">
-        <span>รวมทั้งหมด</span>
-        <span>{total.toLocaleString('th-TH')} ฿</span>
-      </div>
-    </>
-  )}
-</div>
 
-{/* ====== บรีฟงาน ====== */}
-<div className="rounded-lg border border-neutral-200 p-4 mb-6">
-  <div className="mb-3 font-medium">บรีฟงาน</div>
-  <textarea
-    className="min-h-[140px] rounded-md border border-neutral-300 px-3 py-2 text-sm w-full disabled:bg-neutral-100 disabled:text-neutral-400"
-    placeholder="กรุณาเชื่อมต่อ Discord ก่อนจึงจะสามารถพิมพ์บรีฟงานได้"
-    value={brief}
-    onChange={(e) => setBrief(e.target.value)}
-    disabled={!discordUserId}  // ✅ ล็อกถ้ายังไม่ได้ login
-  />
-  <p className="mt-2 text-xs text-neutral-500">
-    *คุณสามารถบรีฟงานเบื้องต้นในช่องนี้ และทีมงานจะคุยรายละเอียดเพิ่มเติมกับคุณต่อในห้อง Discord
-  </p>
-</div>
+                  {/* ขวา: ปุ่มจำนวน + ลบ */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setQty(item.id, Math.max(1, item.qty - 1))}
+                      className="rounded-md border px-2 hover:bg-neutral-50 disabled:opacity-40"
+                      aria-label="ลดจำนวน"
+                      disabled={loading}
+                    >
+                      −
+                    </button>
+                    <span className="tabular-nums w-6 text-center">{item.qty}</span>
+                    <button
+                      onClick={() => setQty(item.id, item.qty + 1)}
+                      className="rounded-md border px-2 hover:bg-neutral-50 disabled:opacity-40"
+                      aria-label="เพิ่มจำนวน"
+                      disabled={loading}
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => remove(item.id)}
+                    className="text-red-600 hover:underline disabled:opacity-40"
+                    disabled={loading}
+                  >
+                    ลบ
+                  </button>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-4 flex items-center justify-between font-medium">
+              <span>รวมทั้งหมด</span>
+              <span>{total.toLocaleString('th-TH')} ฿</span>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ====== บรีฟงาน + แนบไฟล์ ====== */}
+      <div className="rounded-lg border border-neutral-200 p-4 mb-6">
+        <div className="mb-3 font-medium">บรีฟงาน</div>
+        <textarea
+          className="min-h-[140px] rounded-md border border-neutral-300 px-3 py-2 text-sm w-full disabled:bg-neutral-100 disabled:text-neutral-400"
+          placeholder="กรุณาเชื่อมต่อ Discord ก่อนจึงจะสามารถพิมพ์บรีฟงานได้"
+          value={brief}
+          onChange={(e) => setBrief(e.target.value)}
+          disabled={!discordUserId} // ✅ ยังไม่เชื่อม Discord → พิมพ์บรีฟไม่ได้
+        />
+        <p className="mt-2 text-xs text-neutral-500">
+          *คุณสามารถบรีฟงานเบื้องต้นในช่องนี้ และทีมงานจะคุยรายละเอียดเพิ่มเติมกับคุณต่อในห้อง Discord
+        </p>
+
+        {/* ✅ Input แนบไฟล์ (เลือกไฟล์ก่อนสั่งซื้อ → ระบบจะอัปโหลดขึ้น Vercel Blob อัตโนมัติ) */}
+        <div className="mt-4">
+          <label className="block text-sm font-medium mb-1">แนบไฟล์อ้างอิง (ถ้ามี)</label>
+          <input
+            type="file"
+            accept="image/*,.pdf,.zip"
+            onChange={(e) => e.target.files && setFile(e.target.files[0])}
+            className="block w-full text-sm text-neutral-700 file:mr-4 file:rounded-md file:border-0 file:bg-neutral-900 file:px-3 file:py-2 file:text-white hover:file:bg-neutral-800 disabled:opacity-50"
+            disabled={!discordUserId} // ✅ ยังไม่เชื่อม Discord → เลือกไฟล์ไม่ได้
+          />
+          {file && (
+            <p className="mt-1 text-xs text-neutral-500">ไฟล์ที่เลือก: {file.name}</p>
+          )}
+        </div>
+      </div>
 
       {/* ====== เชื่อมต่อ Discord ====== */}
       <div className="rounded-lg border border-neutral-200 p-4 mb-6">
         <div className="mb-3 font-medium">เชื่อมต่อ Discord</div>
+
         {!discordUserId ? (
           <button
             onClick={loginWithDiscord}
@@ -277,7 +327,7 @@ export default function CheckoutPage() {
                         className="rounded-md bg-neutral-900 text-white px-3 py-1.5 hover:bg-neutral-800">
                   Join Discord Server
                 </button>
-                <span className="text-neutral-500">รบกวนลูกค้าต้องเข้า Discord ก่อนสั่งซื้อสินค้า</span>
+                <span className="text-neutral-500">เข้ากิลด์ก่อน แล้วค่อยสั่งซื้อ</span>
               </div>
             )}
 
@@ -291,7 +341,7 @@ export default function CheckoutPage() {
               <div className="text-emerald-600">พร้อมสั่งซื้อแล้ว ✅</div>
             )}
 
-            {/* ✅ ปุ่ม manual refresh */}
+            {/* ปุ่ม manual refresh */}
             {discordUserId && !guild.ready && (
               <div className="mt-2">
                 <button
