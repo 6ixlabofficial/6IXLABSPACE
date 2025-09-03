@@ -174,10 +174,80 @@ export default function CheckoutPage() {
       <h1 className="text-2xl md:text-3xl font-oswald mb-6">Checkout</h1>
 
       {/* ====== ตะกร้า ====== */}
-      {/* ... โค้ดตะกร้าเดิมของคุณ ... */}
+<div className="rounded-lg border border-neutral-200 p-4 mb-6">
+  <div className="mb-3 font-medium">ตะกร้าของคุณ</div>
+
+  {items.length === 0 ? (
+    <div className="flex items-center justify-between text-sm text-neutral-500">
+      <span>ไม่มีสินค้าในตะกร้า</span>
+      <Link
+        href="/"
+        className="rounded-md border border-neutral-300 px-3 py-1.5 text-neutral-800 hover:border-neutral-900"
+      >
+        เลือกสินค้าต่อ
+      </Link>
+    </div>
+  ) : (
+    <>
+      <ul className="space-y-3 text-sm">
+        {items.map((item) => (
+          <li key={item.id} className="flex items-center justify-between gap-3">
+            <div className="flex-1 flex items-center gap-3 min-w-0">
+              <div className="h-12 w-12 md:h-16 md:w-16 overflow-hidden rounded-md border border-neutral-200 bg-neutral-50 shrink-0">
+                {item.image ? (
+                  <Image
+                    src={item.image}
+                    alt={item.name}
+                    width={120}
+                    height={150}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-[10px] text-neutral-400">
+                    no image
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0">
+                <div className="font-medium truncate">{item.name}</div>
+                <div className="text-neutral-500">
+                  {item.price.toLocaleString('th-TH')} ฿ / ชิ้น
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setQty(item.id, Math.max(1, item.qty - 1))}
+                className="rounded-md border px-2 hover:bg-neutral-50">−</button>
+              <span className="tabular-nums w-6 text-center">{item.qty}</span>
+              <button onClick={() => setQty(item.id, item.qty + 1)}
+                className="rounded-md border px-2 hover:bg-neutral-50">+</button>
+            </div>
+            <button onClick={() => remove(item.id)}
+              className="text-red-600 hover:underline">ลบ</button>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-4 flex items-center justify-between font-medium">
+        <span>รวมทั้งหมด</span>
+        <span>{total.toLocaleString('th-TH')} ฿</span>
+      </div>
+    </>
+  )}
+</div>
 
       {/* ====== บรีฟงาน ====== */}
-      {/* ... โค้ดบรีฟเดิมของคุณ ... */}
+<div className="rounded-lg border border-neutral-200 p-4 mb-6">
+  <div className="mb-3 font-medium">บรีฟงาน</div>
+  <textarea
+    className="min-h-[140px] rounded-md border border-neutral-300 px-3 py-2 text-sm w-full"
+    placeholder="อธิบายรายละเอียดที่ต้องการ เช่น ประเภทเสื้อ/สี/ลาย/โลโก้/ขนาด ฯลฯ"
+    value={brief}
+    onChange={(e) => setBrief(e.target.value)}
+  />
+  <p className="mt-2 text-xs text-neutral-500">
+    *คุณสามารถบรีฟงานเบื้องต้นในช่องนี้ และทีมงานจะคุยรายละเอียดเพิ่มเติมกับคุณต่อในห้อง Discord
+  </p>
+</div>
 
       {/* ====== เชื่อมต่อ Discord ====== */}
       <div className="rounded-lg border border-neutral-200 p-4 mb-6">
