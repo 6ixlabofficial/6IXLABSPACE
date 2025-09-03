@@ -3,10 +3,12 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'                   // ✅ ใช้ next/image
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'        // ✅ เพิ่ม
 import { useCart, type CartItem } from '@/components/CartContext'
 
 export default function CheckoutPage() {
+  const router = useRouter()                        // ✅ เพิ่ม
   const { items, setQty, remove, total, clear } = useCart()
 
   // ✅ ช่องบรีฟงาน (ใช้แทนข้อมูลลูกค้า)
@@ -28,6 +30,13 @@ export default function CheckoutPage() {
   }, [])
 
   const loginWithDiscord = () => { window.location.href = '/api/discord/login' }
+
+  // ✅ เพิ่ม: ออกจากระบบ (ล้างคุกกี้ที่ฝั่ง API แล้วรีเฟรช UI)
+  const logout = async () => {
+    await fetch('/api/logout', { method: 'POST' })
+    setDiscordUserId(null)
+    router.refresh()
+  }
 
   const [loading, setLoading] = useState(false)
 
@@ -132,7 +141,7 @@ export default function CheckoutPage() {
                   {/* ขวา: ปุ่มจำนวน + ลบ */}
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setQty(item.id, Math.max(1, item.qty - 1))} // ✅ กันติด 0
+                      onClick={() => setQty(item.id, Math.max(1, item.qty - 1))}
                       className="rounded-md border px-2 hover:bg-neutral-50 disabled:opacity-40"
                       aria-label="ลดจำนวน"
                       disabled={loading}
@@ -187,14 +196,18 @@ export default function CheckoutPage() {
       <div className="rounded-lg border border-neutral-200 p-4 mb-6">
         <div className="mb-3 font-medium">เชื่อมต่อ Discord (ทางเลือก)</div>
         {discordUserId ? (
-          <div className="flex items-center justify-between text-sm">
-            <span>
-              เชื่อมต่อแล้ว:{' '}
-              <code className="px-1 rounded bg-neutral-100">{discordUserId}</code>
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="truncate">
+              เชื่อมต่อแล้ว: <code className="px-1 rounded bg-neutral-100">{discordUserId}</code>
             </span>
-            <span className="text-xs text-neutral-500">
-              *เมื่อยืนยันสั่งซื้อเรียบร้อย จะเปิดห้องพูดคุยใน Discord ให้คุณโดยอัตโนมัติ
-            </span>
+
+            {/* ✅ ปุ่ม Logout */}
+            <button
+              onClick={logout}
+              className="rounded-md bg-red-600 text-white px-3 py-1.5 hover:bg-red-700"
+            >
+              Logout
+            </button>
           </div>
         ) : (
           <button
