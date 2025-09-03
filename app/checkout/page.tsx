@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useCart, type CartItem } from '@/components/CartContext'
+import HowToOrder from '@/components/HowToOrder'
 
 const INVITE_URL = 'https://discord.gg/ZAPXTwUYmW' // แก้เป็น invite ของกิลด์คุณ
 
@@ -172,6 +173,12 @@ export default function CheckoutPage() {
   return (
     <main className="mx-auto max-w-3xl px-4 md:px-8 py-10">
       <h1 className="text-2xl md:text-3xl font-oswald mb-6">Checkout</h1>
+      
+      {/* คู่มือแบบเต็ม (พับ/กางได้) */}
+      <HowToOrder className="mb-6" />
+
+      {/* ถ้าอยากแทรกโหมดสั้นในตำแหน่งอื่น */}
+      {/* <HowToOrder showMini className="mb-6" /> */}
 
       {/* ====== ตะกร้า ====== */}
 <div className="rounded-lg border border-neutral-200 p-4 mb-6">
