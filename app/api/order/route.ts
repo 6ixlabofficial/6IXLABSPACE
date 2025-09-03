@@ -6,9 +6,9 @@ import { redis } from '@/lib/redis'
 
 // --- Helper: get client IP safely from headers (works on Vercel/Edge) ---
 function getClientIp(req: NextRequest) {
-  const xff = req.headers.get('x-forwarded-for')
-  const ipFromXff = xff?.split(',')[0]?.trim()
-  return ipFromXff ?? req.headers.get('x-real-ip') ?? 'unknown'
+  const xff = req.headers.get("x-forwarded-for");
+  const ipFromXff = xff?.split(",")[0]?.trim();
+  return ipFromXff ?? req.headers.get("x-real-ip") ?? "unknown";
 }
 
 /* ========= ENV ========= */
@@ -22,30 +22,31 @@ const ALLOW_PERMS = '93184' // VIEW+SEND+READ_HISTORY+ATTACH+EMBED
 const snowflake = z.string().regex(/^\d{17,20}$/, 'invalid discord id')
 
 /* ========= SCHEMA ========= */
-// เปลี่ยนมาใช้ brief (ต้องมี) และให้ name/contact เป็น optional
+// ✅ รองรับ customer.fileUrl (ลิงก์ไฟล์จาก Vercel Blob)
 const OrderSchema = z.object({
-  orderId: z.string().optional(), // ให้ client ส่งมาก็ได้ ไม่ส่งมาก็ gen เอง
+  orderId: z.string().optional(),
   items: z.array(
     z.object({
       id: z.string().min(1).max(64),
       name: z.string().min(1).max(200),
       qty: z.number().int().min(1).max(999),
       price: z.number().int().min(0).max(1_000_000),
-      image: z.string().url().optional(), // ถ้าส่งรูปมากับไอเท็ม (optional)
+      image: z.string().url().optional(), // ถ้าเป็น URL เต็มเท่านั้น
     })
   ).min(1).max(50),
   customer: z.object({
-    brief: z.string().min(1).max(2000), // ✅ บรีฟงาน (บังคับ)
+    brief: z.string().min(1).max(2000),
     name: z.string().max(200).optional(),
     contact: z.string().max(300).optional(),
     discordUserId: snowflake.optional(),
+    fileUrl: z.string().url().optional(), // ✅ เพิ่มฟิลด์นี้
   }),
 })
 
 /* ========= ORDER ID GENERATOR ========= */
 async function nextOrderId() {
   const n = await redis.incr('order:counter')
-  return `ORD-${String(n).padStart(6, '0')}` // ORD-000001
+  return `ORD-${String(n).padStart(6, '0')}`
 }
 
 /* ========= HELPERS ========= */
@@ -84,7 +85,6 @@ function buildOverwrites({
 }
 
 function buildEmbed(order: z.infer<typeof OrderSchema>, total: number) {
-  // รวมรายการให้สั้นกระชับ
   const list =
     order.items.map(i => `• ${i.name} × ${i.qty} — ${i.price.toLocaleString('th-TH')}฿`).join('\n') || '-'
 
@@ -97,7 +97,10 @@ function buildEmbed(order: z.infer<typeof OrderSchema>, total: number) {
       ...(order.customer.discordUserId
         ? [{ name: 'Discord', value: `<@${order.customer.discordUserId}>`, inline: true }]
         : []),
-      { name: 'บรีฟงาน', value: order.customer.brief.slice(0, 1024) }, // ✅ แสดงบรีฟ
+      { name: 'บรีฟงาน', value: order.customer.brief.slice(0, 1024) },
+      ...(order.customer.fileUrl
+        ? [{ name: 'ไฟล์แนบ', value: order.customer.fileUrl }]
+        : []), // ✅ แสดงลิงก์ไฟล์แนบ
       { name: 'รายการ', value: list.slice(0, 1024) },
       { name: 'รวม', value: `**${total.toLocaleString('th-TH')}฿**`, inline: true },
     ],
@@ -148,15 +151,15 @@ export async function POST(req: NextRequest) {
     const raw = await req.json()
     const parsed = OrderSchema.parse(raw)
 
-    // ถ้า client ไม่ส่ง orderId → gen จาก Redis
+    // gen order id ถ้าไม่ส่งมา
     const orderId = parsed.orderId ?? await nextOrderId()
 
-    // Topic: โชว์บรีฟย่อ ๆ + ชื่อ(ถ้ามี)
+    // Topic แสดงบรีฟสั้น ๆ + ชื่อ/ติดต่อ (ถ้ามี)
     const topicParts = [
       `Order #${orderId}`,
       parsed.customer.name ? `• ${parsed.customer.name}` : null,
       parsed.customer.contact ? `• ${parsed.customer.contact}` : null,
-      `• ${parsed.customer.brief}` // ใส่บรีฟ (Discord limit 1024)
+      `• ${parsed.customer.brief}`,
     ].filter(Boolean)
 
     const topic = topicParts.join(' ').slice(0, 1024)
