@@ -11,3 +11,5 @@ yarn-debu
 
 .env
 .env.local
+.vercel
+.env*.local

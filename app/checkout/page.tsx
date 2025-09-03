@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useCart, type CartItem } from '@/components/CartContext'
-import { put } from '@vercel/blob' // ✅ ใช้สำหรับอัปโหลดไฟล์ไป Vercel Blob
+import { upload } from '@vercel/blob/client';
 
 // แก้เป็นลิงก์เชิญจริงของกิลด์คุณ
 const INVITE_URL = 'https://discord.gg/yourInvite'
@@ -128,17 +128,34 @@ export default function CheckoutPage() {
 
     setLoading(true)
 
+// ตัวอย่างเช็กอย่างง่าย
+function validateFile(file: File) {
+  const okType = /^image\//.test(file.type) || /pdf$|zip$/.test(file.type);
+  if (!okType) throw new Error('รองรับเฉพาะรูป, PDF, ZIP');
+  const max = 10 * 1024 * 1024; // 10MB
+  if (file.size > max) throw new Error('ไฟล์ใหญ่เกิน 10MB');
+}
+
+async function uploadBriefFile(file: File) {
+  validateFile(file);
+  const safeName = `order-uploads/${Date.now()}-${file.name}`;
+  const { url } = await upload(safeName, file, {
+    access: 'public',
+    handleUploadUrl: '/api/blob/upload',
+  });
+  return url;
+}
+
     // ✅ ถ้ามีไฟล์ → อัปไป Vercel Blob (public) แล้วได้ URL
-    let fileUrl: string | undefined
-    if (file) {
-      try {
-        const { url } = await put(file.name, file, { access: 'public' })
-        fileUrl = url
-      } catch (err) {
-        console.error('upload failed', err)
-        alert('อัปโหลดไฟล์ไม่สำเร็จ')
-      }
-    }
+    let fileUrl: string | undefined;
+if (file) {
+  try {
+    fileUrl = await uploadBriefFile(file);
+  } catch (e: any) {
+    alert(e?.message || 'อัปโหลดไฟล์ไม่สำเร็จ');
+    return; // ยกเลิกสั่งซื้อถ้าอยากบังคับให้แนบไฟล์สำเร็จก่อน
+  }
+}
 
     const payload = {
       items: items.map(({ id, name, qty, price, image }: CartItem) => ({
