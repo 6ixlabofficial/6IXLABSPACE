@@ -56,17 +56,59 @@ export default function CheckoutPage() {
 
   useEffect(() => { checkGuildOnce() }, [discordUserId])
 
+  // ✅ ปรับให้ทนขึ้น: poll สูงสุด ~40s และหยุดเองเมื่อ ready
   function openInviteAndPoll() {
     window.open(INVITE_URL, '_blank')
     if (pollRef.current) clearInterval(pollRef.current)
+
+    let ticks = 0
     pollRef.current = setInterval(async () => {
       await checkGuildOnce()
+      ticks++
       setGuild((g) => {
         if (g.ready && pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
         return g
       })
+      if (ticks > 10 && pollRef.current) { // 10 * 4s ~= 40s
+        clearInterval(pollRef.current)
+        pollRef.current = null
+      }
     }, 4000)
   }
+
+  // ✅ รีเฟรชอัตโนมัติเมื่อกลับมาโฟกัส/แท็บ visible (ลูกค้ากดยอมรับกฎในอีกแท็บ)
+  useEffect(() => {
+    const onFocus = () => {
+      checkGuildOnce()
+      if (discordUserId && !guild.ready) {
+        if (pollRef.current) clearInterval(pollRef.current)
+        let ticks = 0
+        pollRef.current = setInterval(async () => {
+          await checkGuildOnce()
+          ticks++
+          setGuild((g) => {
+            if (g.ready && pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+            return g
+          })
+          if (ticks > 10 && pollRef.current) {
+            clearInterval(pollRef.current)
+            pollRef.current = null
+          }
+        }, 3000)
+        // safety stop ที่ 30s
+        setTimeout(() => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null } }, 30000)
+      }
+    }
+
+    window.addEventListener('focus', onFocus)
+    const onVis = () => { if (document.visibilityState === 'visible') onFocus() }
+    document.addEventListener('visibilitychange', onVis)
+
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVis)
+    }
+  }, [discordUserId, guild.ready])
 
   // ====== สั่งซื้อ ======
   async function placeOrder() {
@@ -84,6 +126,7 @@ export default function CheckoutPage() {
     const payload = {
       items: items.map(({ id, name, qty, price, image }: CartItem) => ({
         id, name, qty, price,
+        // ส่งเฉพาะกรณีเป็น URL เต็ม กัน INVALID_PAYLOAD
         image: (image && /^https?:\/\//i.test(image)) ? image : undefined,
       })),
       customer: { brief: brief.trim(), discordUserId }
@@ -166,8 +209,23 @@ export default function CheckoutPage() {
               </div>
             )}
 
-            {guild.ready && (
+            {guild.member && !guild.pending && (
               <div className="text-emerald-600">พร้อมสั่งซื้อแล้ว ✅</div>
+            )}
+
+            {/* ✅ ปุ่ม manual refresh */}
+            {discordUserId && !guild.ready && (
+              <div className="mt-2">
+                <button
+                  onClick={checkGuildOnce}
+                  className="rounded-md border px-3 py-1.5 hover:bg-neutral-50 text-sm"
+                >
+                  ฉันเข้าร่วมแล้ว / รีเฟรชสถานะ
+                </button>
+                <p className="text-xs text-neutral-500 mt-1">
+                  ถ้าเพิ่งกดยอมรับกฎใน Discord ให้กดปุ่มนี้เพื่ออัปเดตสถานะ
+                </p>
+              </div>
             )}
 
             <button onClick={logout}
