@@ -54,9 +54,10 @@ export default function CheckoutPage() {
 
     const payload = {
       // ไม่ต้องส่ง orderId ก็ได้ ให้ API gen เอง
-      items: items.map(({ id, name, qty, price, image }: CartItem) => ({
-        id, name, qty, price, image, // image ไม่มีได้
-      })),
+      items: items.map(({ id, name, qty, price, image }) => ({
+       id, name, qty, price,
+       image: (image && /^https?:\/\//i.test(image)) ? image : undefined,
+    })),
       customer: {
         brief: brief.trim(),                // ✅ ส่งบรีฟงาน
         discordUserId: discordUserId ?? undefined,
