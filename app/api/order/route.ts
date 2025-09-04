@@ -92,9 +92,14 @@ function extractUrls(text: string): string[] {
 }
 
 /** สร้าง Embed; ถ้ามี imageUrl จะโชว์รูปใน embed */
-function buildEmbed(order: z.infer<typeof OrderSchema> & { orderId: string }, total: number, imageUrl?: string) {
+function buildEmbed(
+  order: z.infer<typeof OrderSchema> & { orderId: string },
+  total: number,
+  imageUrl?: string,
+  links?: string[]
+) {
   const list =
-    order.items.map(i => `• ${i.name} × ${i.qty} — ${i.price.toLocaleString('th-TH')}฿`).join('\n') || '-'
+    order.items.map(i => `• ${i.name} × ${i.qty} — ${i.price.toLocaleString('th-TH')}฿`).join('\n') || '-';
 
   return {
     title: `รายละเอียดออเดอร์ #${order.orderId}`,
@@ -108,11 +113,14 @@ function buildEmbed(order: z.infer<typeof OrderSchema> & { orderId: string }, to
       { name: 'บรีฟงาน', value: order.customer.brief.slice(0, 1024) },
       { name: 'รายการ', value: list.slice(0, 1024) },
       { name: 'รวม', value: `**${total.toLocaleString('th-TH')}฿**`, inline: true },
+      ...(links && links.length
+        ? [{ name: 'อ้างอิง', value: links.join('\n').slice(0, 1024) }]
+        : []),
     ],
     ...(imageUrl ? { image: { url: imageUrl } } : {}),
     footer: { text: '6IXLAB Orders' },
     timestamp: new Date().toISOString(),
-  }
+  };
 }
 
 async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit & { timeoutMs?: number } = {}) {
@@ -202,27 +210,25 @@ export async function POST(req: NextRequest) {
     const channel = (await createChannelRes.json()) as { id: string }
 
     // 2) โพสต์ข้อความ + Embed
-    const total = parsed.items.reduce((s, i) => s + i.price * i.qty, 0)
+    const total = parsed.items.reduce((s, i) => s + i.price * i.qty, 0);
 
-    // ดึงลิงก์จากบรีฟ
-    const urls = extractUrls(parsed.customer.brief).slice(0, 3)
-    // เลือกลิงก์รูป
-    const imageUrl = urls.find(u => /\.(png|jpe?g|gif|webp)(\?.*)?$/i.test(u)) // ตรงไฟล์รูปเท่านั้น
-    // ลิงก์ที่เหลือเอาไปไว้ content เพื่อ unfurl/กดได้
-    const linksBlock = urls.length ? `\n\n🔗 **อ้างอิง**\n${urls.join('\n')}` : ''
+// ดึงลิงก์จากบรีฟ (สูงสุด 3 อัน)
+const urls = extractUrls(parsed.customer.brief).slice(0, 3);
 
-    await fetchWithTimeout(
-      `https://discord.com/api/v10/channels/${channel.id}/messages`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bot ${BOT_TOKEN}` },
-        body: JSON.stringify({
-          content: `🛒 **Order #${orderId}**${linksBlock}`,
-          embeds: [buildEmbed({ ...parsed, orderId }, total, imageUrl)],
-        }),
-        timeoutMs: 15_000,
-      }
-    )
+// ถ้าเป็นลิงก์รูปตรง ๆ ใช้เป็นภาพของ embed
+const imageUrl = urls.find(u => /\.(png|jpe?g|gif|webp)(\?.*)?$/i.test(u));
+
+await fetchWithTimeout(`https://discord.com/api/v10/channels/${channel.id}/messages`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', Authorization: `Bot ${BOT_TOKEN}` },
+  body: JSON.stringify({
+    // ✅ ไม่ใส่ลิงก์ใน content แล้ว เพื่อตัดความซ้ำ
+    content: `🛒 **Order #${orderId}**`,
+    // ✅ ส่งลิงก์ไปเป็น field "อ้างอิง" ใน embed และแนบรูปถ้ามี
+    embeds: [buildEmbed({ ...parsed, orderId }, total, imageUrl, urls)],
+  }),
+  timeoutMs: 15_000,
+});
 
     // 3) สร้าง invite (optional)
     let inviteUrl: string | undefined
