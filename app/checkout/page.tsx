@@ -127,46 +127,49 @@ export default function CheckoutPage() {
 
   // สั่งซื้อ
   async function placeOrder() {
-    if (!brief.trim()) { alert('กรุณาพิมพ์บรีฟงาน'); return }
-    if (items.length === 0) { alert('ตะกร้าของคุณยังว่าง'); return }
-    if (!discordUserId) { alert('กรุณา Login ด้วย Discord ก่อน'); return }
-    if (!guild.ready) {
-      if (!guild.member) alert('กรุณาเข้าร่วม Discord Server ก่อน')
-      else if (guild.pending) alert('กรุณากดยอมรับกฎ (Rules) ใน Discord ก่อน')
-      return
-    }
-
-    setLoading(true)
-
-    const payload = {
-      items: items.map(({ id, name, qty, price, image }: CartItem) => ({
-        id, name, qty, price,
-        image: (image && /^https?:\/\//i.test(image)) ? image : undefined,
-      })),
-      customer: { brief: brief.trim(), discordUserId }
-    }
-
-    const res = await fetch('/api/order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    }).then(r => r.json()).catch(() => ({ ok: false }))
-
-    setLoading(false)
-
-    if (!res?.ok) {
-      alert('สั่งซื้อไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')
-      return
-    }
-
-    setLastChannelId(res.channelId ?? null)
-    if (res.inviteUrl) window.open(res.inviteUrl, '_blank')
-
-    clear()
-    setBrief('')
-    setRefLink('')
-    alert('สร้างห้องใน Discord สำเร็จ! ถ้ามองไม่เห็น ให้กดยอมรับกฎ หรือกด “ตรวจสิทธิ์อีกครั้ง”.')
+  if (!brief.trim()) { alert('กรุณาพิมพ์บรีฟงาน'); return }
+  if (items.length === 0) { alert('ตะกร้าของคุณยังว่าง'); return }
+  if (!discordUserId) { alert('กรุณา Login ด้วย Discord ก่อน'); return }
+  if (!guild.ready) {
+    if (!guild.member) alert('กรุณาเข้าร่วม Discord Server ก่อน')
+    else if (guild.pending) alert('กรุณากดยอมรับกฎ (Rules) ใน Discord ก่อน')
+    return
   }
+
+  setLoading(true)
+
+  // ✅ รวม refLink เข้าไปในบรีฟเสมอ (ถ้าผู้ใช้กรอก)
+  const url = refLink.trim()
+  const mergedBrief =
+    url && /^https?:\/\//i.test(url)
+      ? `${brief.trim()}\n\n🔗 อ้างอิง: ${url}`
+      : brief.trim()
+
+  const payload = {
+    items: items.map(({ id, name, qty, price, image }: CartItem) => ({
+      id, name, qty, price,
+      image: (image && /^https?:\/\//i.test(image)) ? image : undefined,
+    })),
+    customer: { brief: mergedBrief, discordUserId } // ← ใช้ mergedBrief
+  }
+
+  const res = await fetch('/api/order', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).then(r => r.json()).catch(() => ({ ok: false }))
+
+  setLoading(false)
+
+  if (!res?.ok) { alert('สั่งซื้อไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'); return }
+
+  setLastChannelId(res.channelId ?? null)
+  if (res.inviteUrl) window.open(res.inviteUrl, '_blank')
+  clear()
+  setBrief('')
+  setRefLink('')
+  alert('สร้างห้องใน Discord สำเร็จ! ถ้ามองไม่เห็น ให้กดยอมรับกฎ หรือกด “ตรวจสิทธิ์อีกครั้ง”.')
+}
 
   // ตรวจสิทธิ์อีกครั้ง
   async function grantAgain() {
@@ -318,7 +321,7 @@ export default function CheckoutPage() {
             ล้างบรีฟ
           </button>
           <span className="text-xs text-neutral-500">
-            *สามารถคุยบรีฟต่อได้ในห้อง Discord ที่เปิดให้
+            *สามารถคุยต่อได้ในห้อง Discord ที่เปิดไว้
           </span>
         </div>
       </div>
@@ -344,13 +347,13 @@ export default function CheckoutPage() {
                         className="rounded-md bg-neutral-900 text-white px-3 py-1.5 hover:bg-neutral-800">
                   Join Discord Server
                 </button>
-                <span className="text-neutral-500">เข้ากิลด์ก่อน แล้วค่อยสั่งซื้อ</span>
+                <span className="text-neutral-500">รบกวนเข้าดิสคอร์ดก่อน แล้วค่อยสั่งซื้อ</span>
               </div>
             )}
 
             {guild.member && guild.pending && (
               <div className="text-amber-600">
-                ยัง <b>pending</b> — โปรดกดยอมรับกฎใน Discord ก่อน
+                ยัง <b>pending</b> — โปรดกดเข้า Discord ก่อน
               </div>
             )}
 
