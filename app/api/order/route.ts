@@ -169,13 +169,14 @@ export async function POST(req: NextRequest) {
     const orderId = parsed.orderId ?? await nextOrderId()
 
     // Topic: แสดงบรีฟย่อ + ชื่อ/ติดต่อ
-    const topicParts = [
-      `Order #${orderId}`,
-      parsed.customer.name ? `• ${parsed.customer.name}` : null,
-      parsed.customer.contact ? `• ${parsed.customer.contact}` : null,
-      `• ${parsed.customer.brief}`,
-    ].filter(Boolean)
-    const topic = topicParts.join(' ').slice(0, 1024)
+    const mainItem = parsed.items[0]?.name ?? 'Order';
+const topicParts = [
+  `#${orderId}`,
+  parsed.customer.name ?? null,
+  mainItem
+].filter(Boolean);
+
+const topic = topicParts.join(' • ').slice(0, 100);
 
     // 1) สร้างช่อง
     const createChannelRes = await fetchWithTimeout(
