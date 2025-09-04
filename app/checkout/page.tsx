@@ -5,7 +5,6 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useCart, type CartItem } from '@/components/CartContext'
-import { upload } from '@vercel/blob/client';
 
 // แก้เป็นลิงก์เชิญจริงของกิลด์คุณ
 const INVITE_URL = 'https://discord.gg/yourInvite'
@@ -20,9 +19,6 @@ export default function CheckoutPage() {
   const [discordUserId, setDiscordUserId] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)
-
-  // ✅ file แนบ (อัปโหลดขึ้น Blob ก่อนส่งออเดอร์)
-  const [file, setFile] = useState<File | null>(null)
 
   // ✅ สถานะกิลด์สำหรับ Gate (A)
   const [guild, setGuild] = useState<GuildState>({ member: false, pending: false, ready: false })
@@ -136,34 +132,13 @@ function validateFile(file: File) {
   if (file.size > max) throw new Error('ไฟล์ใหญ่เกิน 10MB');
 }
 
-async function uploadBriefFile(file: File) {
-  validateFile(file);
-  const safeName = `order-uploads/${Date.now()}-${file.name}`;
-  const { url } = await upload(safeName, file, {
-    access: 'public',
-    handleUploadUrl: '/api/blob/upload',
-  });
-  return url;
-}
-
-    // ✅ ถ้ามีไฟล์ → อัปไป Vercel Blob (public) แล้วได้ URL
-    let fileUrl: string | undefined;
-if (file) {
-  try {
-    fileUrl = await uploadBriefFile(file);
-  } catch (e: any) {
-    alert(e?.message || 'อัปโหลดไฟล์ไม่สำเร็จ');
-    return; // ยกเลิกสั่งซื้อถ้าอยากบังคับให้แนบไฟล์สำเร็จก่อน
-  }
-}
-
     const payload = {
       items: items.map(({ id, name, qty, price, image }: CartItem) => ({
         id, name, qty, price,
         // ส่ง image เฉพาะกรณีเป็น URL เต็ม กัน INVALID_PAYLOAD
         image: (image && /^https?:\/\//i.test(image)) ? image : undefined,
       })),
-      customer: { brief: brief.trim(), discordUserId, fileUrl } // ✅ แนบ URL ไฟล์ (ถ้ามี)
+      customer: { brief: brief.trim(), discordUserId }
     }
 
     const res = await fetch('/api/order', {
@@ -186,7 +161,6 @@ if (file) {
     }
 
     clear()
-    setFile(null)
     alert('สร้างห้องใน Discord สำเร็จ! ถ้ามองไม่เห็น ให้กดยอมรับกฎ หรือกด “ตรวจสิทธิ์อีกครั้ง”.')
   }
 
@@ -306,22 +280,6 @@ if (file) {
         <p className="mt-2 text-xs text-neutral-500">
           *คุณสามารถบรีฟงานเบื้องต้นในช่องนี้ และทีมงานจะคุยรายละเอียดเพิ่มเติมกับคุณต่อในห้อง Discord
         </p>
-
-        {/* ✅ Input แนบไฟล์ (เลือกไฟล์ก่อนสั่งซื้อ → ระบบจะอัปโหลดขึ้น Vercel Blob อัตโนมัติ) */}
-        <div className="mt-4">
-          <label className="block text-sm font-medium mb-1">แนบไฟล์อ้างอิง (ถ้ามี)</label>
-          <input
-            type="file"
-            accept="image/*,.pdf,.zip"
-            onChange={(e) => e.target.files && setFile(e.target.files[0])}
-            className="block w-full text-sm text-neutral-700 file:mr-4 file:rounded-md file:border-0 file:bg-neutral-900 file:px-3 file:py-2 file:text-white hover:file:bg-neutral-800 disabled:opacity-50"
-            disabled={!discordUserId} // ✅ ยังไม่เชื่อม Discord → เลือกไฟล์ไม่ได้
-          />
-          {file && (
-            <p className="mt-1 text-xs text-neutral-500">ไฟล์ที่เลือก: {file.name}</p>
-          )}
-        </div>
-      </div>
 
       {/* ====== เชื่อมต่อ Discord ====== */}
       <div className="rounded-lg border border-neutral-200 p-4 mb-6">
