@@ -1,13 +1,12 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useCart, type CartItem } from '@/components/CartContext'
 
-// แก้เป็นลิงก์เชิญจริงของกิลด์คุณ
-const INVITE_URL = 'https://discord.gg/yourInvite'
+const INVITE_URL = 'https://discord.gg/yourInvite' // ⬅️ เปลี่ยนเป็นลิงก์เชิญจริงของกิลด์คุณ
 
 type GuildState = { member: boolean; pending: boolean; ready: boolean }
 
@@ -15,17 +14,38 @@ export default function CheckoutPage() {
   const router = useRouter()
   const { items, setQty, remove, total, clear } = useCart()
 
-  const [brief, setBrief] = useState('')
-  const [discordUserId, setDiscordUserId] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  // ✅ สถานะกิลด์สำหรับ Gate (A)
+  const [discordUserId, setDiscordUserId] = useState<string | null>(null)
   const [guild, setGuild] = useState<GuildState>({ member: false, pending: false, ready: false })
   const pollRef = useRef<NodeJS.Timeout | null>(null)
-
-  // ✅ เก็บ channelId หลังสั่งซื้อ เพื่อกด “ตรวจสิทธิ์อีกครั้ง” (B)
   const [lastChannelId, setLastChannelId] = useState<string | null>(null)
+
+  // บรีฟ + ลิงก์อ้างอิง (ไม่มีอัปโหลดไฟล์)
+  const [brief, setBrief] = useState('')
+  const [refLink, setRefLink] = useState('')
+
+  const BRIEF_TEMPLATE = [
+    '📝 รายละเอียดงาน:',
+    '- สไตล์/ธีม:',
+    '- โทนสีหลัก:',
+    '- ขนาด/อัตราส่วน:',
+    '- ไฟล์ปลายทางที่ต้องการ: (PNG/JPEG/PSD ฯลฯ)',
+    '- เดดไลน์โดยประมาณ:',
+    '',
+    '🔗 ลิงก์อ้างอิง (ถ้ามี): ',
+  ].join('\n')
+
+  function insertTemplate() {
+    const urlPart = refLink.trim() ? ` ${refLink.trim()}` : ''
+    const base = BRIEF_TEMPLATE.replace('ลิงก์อ้างอิง (ถ้ามี): ', `ลิงก์อ้างอิง (ถ้ามี):${urlPart}`)
+    setBrief((curr) => (curr ? `${curr}\n\n${base}` : base))
+  }
+  function clearBrief() {
+    setBrief('')
+    setRefLink('')
+  }
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -38,46 +58,47 @@ export default function CheckoutPage() {
   }, [])
 
   const loginWithDiscord = () => { window.location.href = '/api/discord/login' }
-
   const logout = async () => {
     await fetch('/api/logout', { method: 'POST' })
     setDiscordUserId(null)
     router.refresh()
   }
 
-  // ====== เช็ก membership (A) ======
+  // เช็ก membership ครั้งเดียว
   async function checkGuildOnce() {
-    if (!discordUserId) { setGuild({ member: false, pending: false, ready: false }); return }
-    const r = await fetch(`/api/discord/membership?userId=${discordUserId}`, { cache: 'no-store' }).then(res => res.json())
-    if (!r.ok) { setGuild({ member: false, pending: false, ready: false }); return }
+    if (!discordUserId) {
+      setGuild({ member: false, pending: false, ready: false })
+      return
+    }
+    const r = await fetch(`/api/discord/membership?userId=${discordUserId}`, { cache: 'no-store' })
+      .then(res => res.json()).catch(() => ({ ok: false }))
+    if (!r?.ok) { setGuild({ member: false, pending: false, ready: false }); return }
     if (!r.member) setGuild({ member: false, pending: false, ready: false })
     else if (r.pending) setGuild({ member: true, pending: true, ready: false })
     else setGuild({ member: true, pending: false, ready: true })
   }
-
   useEffect(() => { checkGuildOnce() }, [discordUserId])
 
-  // เชิญ + poll สถานะจนกว่าจะพร้อม (สูงสุด ~40s)
+  // เปิด invite และ poll สถานะจนพร้อม หรือครบเวลา
   function openInviteAndPoll() {
     window.open(INVITE_URL, '_blank')
     if (pollRef.current) clearInterval(pollRef.current)
-
     let ticks = 0
     pollRef.current = setInterval(async () => {
       await checkGuildOnce()
       ticks++
-      setGuild((g) => {
+      setGuild(g => {
         if (g.ready && pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
         return g
       })
-      if (ticks > 10 && pollRef.current) { // 10 * 4s ≈ 40s
+      if (ticks > 10 && pollRef.current) { // ~40s
         clearInterval(pollRef.current)
         pollRef.current = null
       }
     }, 4000)
   }
 
-  // รีเฟรชอัตโนมัติเมื่อโฟกัสหน้า/แท็บกลับมา visible
+  // รีเฟรชเมื่อ focus/กลับมา visible
   useEffect(() => {
     const onFocus = () => {
       checkGuildOnce()
@@ -87,31 +108,25 @@ export default function CheckoutPage() {
         pollRef.current = setInterval(async () => {
           await checkGuildOnce()
           ticks++
-          setGuild((g) => {
+          setGuild(g => {
             if (g.ready && pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
             return g
           })
-          if (ticks > 10 && pollRef.current) {
-            clearInterval(pollRef.current)
-            pollRef.current = null
-          }
+          if (ticks > 10 && pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
         }, 3000)
-        // safety stop ที่ 30s
         setTimeout(() => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null } }, 30000)
       }
     }
-
     window.addEventListener('focus', onFocus)
     const onVis = () => { if (document.visibilityState === 'visible') onFocus() }
     document.addEventListener('visibilitychange', onVis)
-
     return () => {
       window.removeEventListener('focus', onFocus)
       document.removeEventListener('visibilitychange', onVis)
     }
   }, [discordUserId, guild.ready])
 
-  // ====== สั่งซื้อ ======
+  // สั่งซื้อ
   async function placeOrder() {
     if (!brief.trim()) { alert('กรุณาพิมพ์บรีฟงาน'); return }
     if (items.length === 0) { alert('ตะกร้าของคุณยังว่าง'); return }
@@ -124,18 +139,9 @@ export default function CheckoutPage() {
 
     setLoading(true)
 
-// ตัวอย่างเช็กอย่างง่าย
-function validateFile(file: File) {
-  const okType = /^image\//.test(file.type) || /pdf$|zip$/.test(file.type);
-  if (!okType) throw new Error('รองรับเฉพาะรูป, PDF, ZIP');
-  const max = 10 * 1024 * 1024; // 10MB
-  if (file.size > max) throw new Error('ไฟล์ใหญ่เกิน 10MB');
-}
-
     const payload = {
       items: items.map(({ id, name, qty, price, image }: CartItem) => ({
         id, name, qty, price,
-        // ส่ง image เฉพาะกรณีเป็น URL เต็ม กัน INVALID_PAYLOAD
         image: (image && /^https?:\/\//i.test(image)) ? image : undefined,
       })),
       customer: { brief: brief.trim(), discordUserId }
@@ -145,33 +151,32 @@ function validateFile(file: File) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
-    }).then((r) => r.json()).catch(() => ({ ok: false }))
+    }).then(r => r.json()).catch(() => ({ ok: false }))
 
     setLoading(false)
 
-    if (!res.ok) {
+    if (!res?.ok) {
       alert('สั่งซื้อไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')
       return
     }
 
     setLastChannelId(res.channelId ?? null)
-
-    if (res.inviteUrl) {
-      window.open(res.inviteUrl, '_blank')
-    }
+    if (res.inviteUrl) window.open(res.inviteUrl, '_blank')
 
     clear()
+    setBrief('')
+    setRefLink('')
     alert('สร้างห้องใน Discord สำเร็จ! ถ้ามองไม่เห็น ให้กดยอมรับกฎ หรือกด “ตรวจสิทธิ์อีกครั้ง”.')
   }
 
-  // ====== ตรวจสิทธิ์อีกครั้ง (B) ======
+  // ตรวจสิทธิ์อีกครั้ง
   async function grantAgain() {
     if (!lastChannelId || !discordUserId) return alert('ยังไม่มีข้อมูลห้องหรือผู้ใช้')
     const r = await fetch('/api/order/grant', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ channelId: lastChannelId, customerDiscordId: discordUserId }),
-    }).then(res => res.json())
+    }).then(res => res.json()).catch(() => ({ ok: false }))
     if (r?.ok) alert('สิทธิ์ถูกอัปเดตแล้ว ลองเข้าไปที่ห้องอีกครั้ง')
     else alert('อัปเดตสิทธิ์ไม่สำเร็จ โปรดติดต่อแอดมิน')
   }
@@ -267,19 +272,57 @@ function validateFile(file: File) {
         )}
       </div>
 
-      {/* ====== บรีฟงาน + แนบไฟล์ ====== */}
+      {/* ====== บรีฟงาน (ไม่มีอัปโหลดไฟล์) ====== */}
       <div className="rounded-lg border border-neutral-200 p-4 mb-6">
         <div className="mb-3 font-medium">บรีฟงาน</div>
+
+        {/* ลิงก์อ้างอิง (จะถูกแทรกเข้าไปในบรีฟ) */}
+        <div className="mb-3">
+          <label className="block text-sm text-neutral-700 mb-1">
+            ลิงก์อ้างอิง (Google Drive/Imgur/ฯลฯ) — *ไม่บังคับ
+          </label>
+          <input
+            type="url"
+            placeholder="https://..."
+            value={refLink}
+            onChange={(e) => setRefLink(e.target.value)}
+            disabled={!discordUserId}
+            className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm disabled:bg-neutral-100 disabled:text-neutral-400"
+          />
+          <p className="mt-1 text-xs text-neutral-500">
+            *ถ้ามีหลายลิงก์ ให้ใส่ในบรีฟโดยตรงได้ครับ
+          </p>
+        </div>
+
         <textarea
-          className="min-h-[140px] rounded-md border border-neutral-300 px-3 py-2 text-sm w-full disabled:bg-neutral-100 disabled:text-neutral-400"
+          className="min-h-[180px] rounded-md border border-neutral-300 px-3 py-2 text-sm w-full disabled:bg-neutral-100 disabled:text-neutral-400"
           placeholder="กรุณาเชื่อมต่อ Discord ก่อนจึงจะสามารถพิมพ์บรีฟงานได้"
           value={brief}
           onChange={(e) => setBrief(e.target.value)}
-          disabled={!discordUserId} // ✅ ยังไม่เชื่อม Discord → พิมพ์บรีฟไม่ได้
+          disabled={!discordUserId}
         />
-        <p className="mt-2 text-xs text-neutral-500">
-          *คุณสามารถบรีฟงานเบื้องต้นในช่องนี้ และทีมงานจะคุยรายละเอียดเพิ่มเติมกับคุณต่อในห้อง Discord
-        </p>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={insertTemplate}
+            disabled={!discordUserId}
+            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-50 disabled:opacity-50"
+          >
+            เติมเทมเพลตบรีฟให้
+          </button>
+          <button
+            type="button"
+            onClick={clearBrief}
+            className="rounded-md border px-3 py-1.5 text-sm hover:bg-neutral-50"
+          >
+            ล้างบรีฟ
+          </button>
+          <span className="text-xs text-neutral-500">
+            *ไม่มีแนบไฟล์แล้ว — กรุณาวางลิงก์อ้างอิงไว้ในบรีฟแทน
+          </span>
+        </div>
+      </div>
 
       {/* ====== เชื่อมต่อ Discord ====== */}
       <div className="rounded-lg border border-neutral-200 p-4 mb-6">
@@ -316,7 +359,6 @@ function validateFile(file: File) {
               <div className="text-emerald-600">พร้อมสั่งซื้อแล้ว ✅</div>
             )}
 
-            {/* ปุ่ม manual refresh */}
             {discordUserId && !guild.ready && (
               <div className="mt-2">
                 <button
@@ -354,11 +396,13 @@ function validateFile(file: File) {
         </Link>
       </div>
 
-      {/* ====== ปุ่มตรวจสิทธิ์อีกครั้ง (B) ====== */}
+      {/* ====== ปุ่มตรวจสิทธิ์อีกครั้ง ====== */}
       {lastChannelId && (
         <div className="mt-4 flex items-center gap-2 text-sm">
-          <button onClick={grantAgain}
-                  className="rounded-md border px-3 py-1.5 hover:bg-neutral-50">
+          <button
+            onClick={grantAgain}
+            className="rounded-md border px-3 py-1.5 hover:bg-neutral-50"
+          >
             ตรวจสิทธิ์เข้าห้องอีกครั้ง
           </button>
           <span className="text-neutral-500">ใช้เมื่อเพิ่ง join Discord หรือเพิ่งกดยอมรับกฎ</span>
