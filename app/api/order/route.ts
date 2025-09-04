@@ -4,19 +4,11 @@ import { z } from 'zod'
 import { ratelimit } from '@/lib/ratelimit'
 import { redis } from '@/lib/redis'
 
-function extractUrls(text: string): string[] {
-  const re = /(https?:\/\/[^\s<>()]+[^.,\s<>()])/gi;
-  const out: string[] = [];
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(text)) && out.length < 5) out.push(m[0]);
-  return out;
-}
-
-// --- Helper: get client IP safely from headers (works on Vercel/Edge) ---
+/* ========= Helper: client IP (Vercel/Edge friendly) ========= */
 function getClientIp(req: NextRequest) {
-  const xff = req.headers.get("x-forwarded-for");
-  const ipFromXff = xff?.split(",")[0]?.trim();
-  return ipFromXff ?? req.headers.get("x-real-ip") ?? "unknown";
+  const xff = req.headers.get('x-forwarded-for')
+  const ipFromXff = xff?.split(',')[0]?.trim()
+  return ipFromXff ?? req.headers.get('x-real-ip') ?? 'unknown'
 }
 
 /* ========= ENV ========= */
@@ -30,7 +22,6 @@ const ALLOW_PERMS = '93184' // VIEW+SEND+READ_HISTORY+ATTACH+EMBED
 const snowflake = z.string().regex(/^\d{17,20}$/, 'invalid discord id')
 
 /* ========= SCHEMA ========= */
-// ✅ รองรับ customer.fileUrl (ลิงก์ไฟล์จาก Vercel Blob)
 const OrderSchema = z.object({
   orderId: z.string().optional(),
   items: z.array(
@@ -39,7 +30,7 @@ const OrderSchema = z.object({
       name: z.string().min(1).max(200),
       qty: z.number().int().min(1).max(999),
       price: z.number().int().min(0).max(1_000_000),
-      image: z.string().url().optional(), // ถ้าเป็น URL เต็มเท่านั้น
+      image: z.string().url().optional(),
     })
   ).min(1).max(50),
   customer: z.object({
@@ -47,17 +38,16 @@ const OrderSchema = z.object({
     name: z.string().max(200).optional(),
     contact: z.string().max(300).optional(),
     discordUserId: snowflake.optional(),
-    fileUrl: z.string().url().optional(), // ✅ เพิ่มฟิลด์นี้
   }),
 })
 
-/* ========= ORDER ID GENERATOR ========= */
+/* ========= ORDER ID ========= */
 async function nextOrderId() {
   const n = await redis.incr('order:counter')
   return `ORD-${String(n).padStart(6, '0')}`
 }
 
-/* ========= HELPERS ========= */
+/* ========= Helpers ========= */
 function assertEnv() {
   if (!BOT_TOKEN || !GUILD_ID || !CATEGORY_ID) {
     throw new Error('Missing required env: DISCORD_BOT_TOKEN / DISCORD_GUILD_ID / DISCORD_CATEGORY_ID')
@@ -83,20 +73,30 @@ function buildOverwrites({
   customerUserId?: string
 }) {
   const overwrites: Array<{ id: string; type: 0 | 1; allow?: string; deny?: string }> = []
-  // ❌ ปิด @everyone
+  // ปิด @everyone
   overwrites.push({ id: guildId, type: 0, deny: '1024' /* VIEW_CHANNEL */ })
-  // ✅ staff
+  // staff
   if (staffRoleId) overwrites.push({ id: staffRoleId, type: 0, allow: ALLOW_PERMS })
-  // ✅ ลูกค้า
+  // ลูกค้า
   if (customerUserId) overwrites.push({ id: customerUserId, type: 1, allow: ALLOW_PERMS })
   return overwrites
 }
 
-function buildEmbed(order: z.infer<typeof OrderSchema>, total: number, imageUrl?: string) {
-  const list =
-    order.items.map(i => `• ${i.name} × ${i.qty} — ${i.price.toLocaleString('th-TH')}฿`).join('\n') || '-';
+/** ดึง URL ออกจากข้อความ (สูงสุด 5 อัน) */
+function extractUrls(text: string): string[] {
+  const re = /(https?:\/\/[^\s<>()]+[^.,\s<>()])/gi
+  const out: string[] = []
+  let m: RegExpExecArray | null
+  while ((m = re.exec(text)) && out.length < 5) out.push(m[0])
+  return out
+}
 
-    return {
+/** สร้าง Embed; ถ้ามี imageUrl จะโชว์รูปใน embed */
+function buildEmbed(order: z.infer<typeof OrderSchema> & { orderId: string }, total: number, imageUrl?: string) {
+  const list =
+    order.items.map(i => `• ${i.name} × ${i.qty} — ${i.price.toLocaleString('th-TH')}฿`).join('\n') || '-'
+
+  return {
     title: `รายละเอียดออเดอร์ #${order.orderId}`,
     color: 0x111827,
     fields: [
@@ -109,10 +109,10 @@ function buildEmbed(order: z.infer<typeof OrderSchema>, total: number, imageUrl?
       { name: 'รายการ', value: list.slice(0, 1024) },
       { name: 'รวม', value: `**${total.toLocaleString('th-TH')}฿**`, inline: true },
     ],
-    ...(imageUrl ? { image: { url: imageUrl } } : {}), // ✅ ถ้ามีรูป ให้แสดงเป็นภาพใน embed
+    ...(imageUrl ? { image: { url: imageUrl } } : {}),
     footer: { text: '6IXLAB Orders' },
     timestamp: new Date().toISOString(),
-  };
+  }
 }
 
 async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit & { timeoutMs?: number } = {}) {
@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'UNSUPPORTED_MEDIA_TYPE' }, { status: 415 })
     }
 
-    // --- Rate limit (Upstash) ---
+    // Rate limit ต่อ IP
     const ip = getClientIp(req)
     const { success, limit, remaining, reset } = await ratelimit.limit(`order:${ip}`)
     if (!success) {
@@ -153,24 +153,23 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Parse & validate
+    // Parse
     const raw = await req.json()
     const parsed = OrderSchema.parse(raw)
 
-    // gen order id ถ้าไม่ส่งมา
+    // สร้าง orderId ถ้ายังไม่มี
     const orderId = parsed.orderId ?? await nextOrderId()
 
-    // Topic แสดงบรีฟสั้น ๆ + ชื่อ/ติดต่อ (ถ้ามี)
+    // Topic: แสดงบรีฟย่อ + ชื่อ/ติดต่อ
     const topicParts = [
       `Order #${orderId}`,
       parsed.customer.name ? `• ${parsed.customer.name}` : null,
       parsed.customer.contact ? `• ${parsed.customer.contact}` : null,
       `• ${parsed.customer.brief}`,
     ].filter(Boolean)
-
     const topic = topicParts.join(' ').slice(0, 1024)
 
-    // 1) สร้าง channel
+    // 1) สร้างช่อง
     const createChannelRes = await fetchWithTimeout(
       `https://discord.com/api/v10/guilds/${GUILD_ID}/channels`,
       {
@@ -202,32 +201,28 @@ export async function POST(req: NextRequest) {
 
     const channel = (await createChannelRes.json()) as { id: string }
 
-    // 2) โพสต์ Embed
-const total = parsed.items.reduce((s, i) => s + i.price * i.qty, 0);
+    // 2) โพสต์ข้อความ + Embed
+    const total = parsed.items.reduce((s, i) => s + i.price * i.qty, 0)
 
-// ✅ ดึงลิงก์จากบรีฟ (สูงสุด 3 ลิงก์)
-const urls = extractUrls(parsed.customer.brief).slice(0, 3);
+    // ดึงลิงก์จากบรีฟ
+    const urls = extractUrls(parsed.customer.brief).slice(0, 3)
+    // เลือกลิงก์รูป
+    const imageUrl = urls.find(u => /\.(png|jpe?g|gif|webp)(\?.*)?$/i.test(u)) // ตรงไฟล์รูปเท่านั้น
+    // ลิงก์ที่เหลือเอาไปไว้ content เพื่อ unfurl/กดได้
+    const linksBlock = urls.length ? `\n\n🔗 **อ้างอิง**\n${urls.join('\n')}` : ''
 
-// ✅ ถ้าเจอลิงก์รูป ใช้เป็นภาพหลักของ embed
-const imageUrl = urls.find(u => /\.(png|jpe?g|gif|webp)(\?.*)?$/i.test(u));
-
-// ✅ ใส่ลิงก์ไว้ใน content เพื่อให้ Discord unfurl/กดได้สะดวก
-const linksBlock = urls.length
-  ? `\n\n🔗 **อ้างอิง**\n${urls.join('\n')}`
-  : '';
-
-await fetchWithTimeout(
-  `https://discord.com/api/v10/channels/${channel.id}/messages`,
-  {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bot ${BOT_TOKEN}` },
-    body: JSON.stringify({
-      content: `🛒 **Order #${orderId}**${linksBlock}`, // ← ลิงก์มาอยู่ที่ content
-      embeds: [buildEmbed({ ...parsed, orderId }, total, imageUrl)], // ← แนบรูปถ้ามี
-    }),
-    timeoutMs: 15_000,
-  }
-);
+    await fetchWithTimeout(
+      `https://discord.com/api/v10/channels/${channel.id}/messages`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bot ${BOT_TOKEN}` },
+        body: JSON.stringify({
+          content: `🛒 **Order #${orderId}**${linksBlock}`,
+          embeds: [buildEmbed({ ...parsed, orderId }, total, imageUrl)],
+        }),
+        timeoutMs: 15_000,
+      }
+    )
 
     // 3) สร้าง invite (optional)
     let inviteUrl: string | undefined
