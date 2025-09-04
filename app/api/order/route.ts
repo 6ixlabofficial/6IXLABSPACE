@@ -43,8 +43,22 @@ const OrderSchema = z.object({
 
 /* ========= ORDER ID ========= */
 async function nextOrderId() {
-  const n = await redis.incr('order:counter')
-  return `ORD-${String(n).padStart(6, '0')}`
+  // ✅ ถ้าไม่ใช่ production (เช่น local dev หรือ vercel preview) → ใช้ TEST ID
+  if (process.env.VERCEL_ENV !== 'production') {
+    return `ORD-TEST-${Date.now()}` // timestamp กันซ้ำ
+  }
+
+  // ========== โหมด Production ==========
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const yyyymm = `${y}${m}`
+
+  // นับ order ต่อเดือน
+  const key = `order:counter:${yyyymm}`
+  const n = await redis.incr(key)
+
+  return `ORD-${yyyymm}-${String(n).padStart(6, '0')}`
 }
 
 /* ========= Helpers ========= */
