@@ -6,7 +6,7 @@ import { useCart } from '@/components/CartContext'
 import ProductDetail from '@/components/ProductDetail'
 import { useMemo, useState, useRef, useEffect } from 'react'
 
-type Category = 'suit' | 'hood' | 'shirt' | 'polo' | 'armor' | 'other'
+type Category = 'promotion' | 'suit' | 'hood' | 'shirt' | 'polo' | 'armor' | 'other'
 type Product = {
   id: string
   name: string
@@ -19,6 +19,26 @@ type Product = {
 }
 
 const PRODUCTS: Product[] = [
+  {
+    id: 'starterpack',
+    name: 'Starter Pack',
+    thName: 'สตาร์ทเตอร์แพ็ค',
+    price: 499,
+    category: 'promotion',
+    images: ['/images/starterpack/starterpack.png'],
+    description: 'สามารถเปลี่ยนสีเสื้อ, custom ลายเสื้อ, เปลี่ยนโลโก้ ได้ตามที่ต้องการ',
+    badges: ['Promotion'],
+  },
+    {
+    id: 'familypack',
+    name: 'Family Pack',
+    thName: 'แฟมิลี่แพ็ค',
+    price: 399,
+    category: 'promotion',
+    images: ['/images/familypack/familypack.png'],
+    description: 'สามารถเปลี่ยนสีเสื้อ, custom ลายเสื้อ, เปลี่ยนโลโก้ ได้ตามที่ต้องการ',
+    badges: ['Promotion'],
+  },
   {
     id: 'suit-classic',
     name: 'Suit Classic',
