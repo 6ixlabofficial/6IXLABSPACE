@@ -4,6 +4,7 @@ import './globals.css'
 import { Oswald, Prompt } from 'next/font/google'
 import TopBar from '@/components/TopBar'
 import { CartProvider } from '@/components/CartContext'  // ✅ เพิ่มบรรทัดนี้
+import { Analytics } from "@vercel/analytics/next"
 
 const oswald = Oswald({
   subsets: ['latin'],
