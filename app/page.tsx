@@ -175,6 +175,7 @@ function Filters({ value, onChange }:{
 }) {
   const { category, priceMax, query } = value
   const CATS = [
+    { key: 'promotionl',   label: 'โปรโมชั่น / Promotion' },
     { key: 'all',   label: 'ทั้งหมด / All' },
     { key: 'suit',  label: 'สูท / Suit' },
     { key: 'hood',  label: 'ฮู้ด / Hood' },
