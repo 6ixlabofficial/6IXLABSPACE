@@ -5,6 +5,7 @@ import { Oswald, Prompt } from 'next/font/google'
 import TopBar from '@/components/TopBar'
 import { CartProvider } from '@/components/CartContext'  // ✅ เพิ่มบรรทัดนี้
 import { Analytics } from "@vercel/analytics/next"
+import Script from 'next/script'
 
 const oswald = Oswald({
   subsets: ['latin'],
@@ -37,6 +38,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <TopBar />
           {children}
         </CartProvider>
+
+        {/* ✅ ติดตั้ง Google Analytics */}
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=G-T1M79TFLQW`}
+          strategy="afterInteractive"
+        />
+        <Script id="ga-init" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-T1M79TFLQW');
+          `}
+        </Script>
       </body>
     </html>
   )
