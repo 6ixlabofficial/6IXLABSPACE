@@ -58,8 +58,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', 'G-XXXXXXXXXX');
-    console.log("✅ Google Analytics Loaded with ID: G-XXXXXXXXXX");
+    gtag('config', 'G-G-T1M79TFLQW');
+    console.log("✅ Google Analytics Loaded with ID: G-G-T1M79TFLQW");
   `}
        </Script>
 
