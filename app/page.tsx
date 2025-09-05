@@ -6,7 +6,7 @@ import { useCart } from '@/components/CartContext'
 import ProductDetail from '@/components/ProductDetail'
 import { useMemo, useState, useRef, useEffect } from 'react'
 
-type Category = 'promotion' | 'suit' | 'hood' | 'shirt' | 'polo' | 'armor' | 'other'
+type Category = 'suit' | 'hood' | 'shirt' | 'polo' | 'armor' | 'other' | 'promotion'
 type Product = {
   id: string
   name: string
@@ -175,8 +175,8 @@ function Filters({ value, onChange }:{
 }) {
   const { category, priceMax, query } = value
   const CATS = [
-    { key: 'promotionl',   label: 'โปรโมชั่น / Promotion' },
     { key: 'all',   label: 'ทั้งหมด / All' },
+    { key: 'promotion',   label: 'โปรโมชั่น / Promotion' },
     { key: 'suit',  label: 'สูท / Suit' },
     { key: 'hood',  label: 'ฮู้ด / Hood' },
     { key: 'shirt', label: 'เสื้อยืด / Shirt' },
