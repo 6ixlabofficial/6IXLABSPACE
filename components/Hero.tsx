@@ -1,16 +1,25 @@
 'use client'
-import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 
-/** ใส่ลิงก์ปลายทางให้แต่ละสไลด์ได้เลย */
-const SLIDES = [
-  { src: '/hero/slide-1.png', url: '/#shop' },                // internal
-  { src: '/hero/slide-2.png', url: 'https://discord.gg/eYGJRr44qj' } // external
-] as const
+/** กำหนดสไลด์ที่นี่: รองรับ video/mp4, video/webm และ image/gif/png/jpg */
+type Slide =
+  | { type: 'video'; srcMp4?: string; srcWebm?: string; poster?: string; url: string }
+  | { type: 'image' | 'gif'; src: string; url: string }
+
+const SLIDES: Slide[] = [
+  // วิดีโอ (แนะนำ: เบากว่า GIF, ลื่นกว่า)
+  {
+    type: 'image',
+    src: '/hero/slide-1.png',
+    url: '/shop',
+  },
+  // รูป/GIF (ยังใช้ได้)
+  { type: 'gif', src: '/hero/slide-2-gif.gif', url: 'https://discord.gg/eYGJRr44qj' },
+]
 
 const INTERVAL_MS = 6000
-const SWIPE_THRESHOLD = 40 // ปัดเกิน ~40px ถึงจะเลื่อน
+const SWIPE_THRESHOLD = 40
 
 function isExternal(url: string) {
   return /^https?:\/\//i.test(url)
@@ -36,7 +45,7 @@ export default function Hero() {
   const goNext = () => setIndex(i => (i + 1) % SLIDES.length)
   const goPrev = () => setIndex(i => (i - 1 + SLIDES.length) % SLIDES.length)
 
-  // touch gesture (มือถือ/แท็บเล็ต)
+  // swipe บนมือถือ/แท็บเล็ต
   const onTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.changedTouches[0].clientX
   }
@@ -50,7 +59,7 @@ export default function Hero() {
   return (
     <section className="mx-auto max-w-7xl px-4 md:px-8 pt-10 pb-6 md:pt-16 md:pb-10">
       <div className="grid items-center gap-8 md:grid-cols-2">
-        {/* ซ้าย: ข้อความ (ลดไซส์หัวข้อเล็กน้อย) */}
+        {/* ซ้าย: ข้อความ */}
         <div>
           <h1 className="font-oswald text-3xl md:text-5xl leading-tight">
             6IXLAB - Premium Clothing & Design
@@ -72,7 +81,7 @@ export default function Hero() {
           </div>
         </div>
 
-        {/* ขวา: สไลด์ + gesture */}
+        {/* ขวา: สไลด์ (รองรับ video + image/gif) */}
         <div
           className="relative aspect-[16/11] w-full overflow-hidden rounded-2xl bg-neutral-900/80 text-white shadow-xl"
           onMouseEnter={() => setPaused(true)}
@@ -80,12 +89,11 @@ export default function Hero() {
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
         >
-          {/* สไลด์ที่คลิกได้ */}
           {SLIDES.map((slide, i) => {
             const external = isExternal(slide.url)
             return (
               <Link
-                key={slide.src}
+                key={i}
                 href={slide.url}
                 target={external ? '_blank' : undefined}
                 rel={external ? 'noopener noreferrer' : undefined}
@@ -95,30 +103,43 @@ export default function Hero() {
                 }`}
                 aria-label={`Open slide ${i + 1}`}
               >
-                <Image
-                  src={slide.src}
-                  alt={`slide-${i + 1}`}
-                  fill
-                  className="object-cover"
-                  sizes="(min-width:1024px) 640px, 100vw"
-                  priority={i === 0}
-                />
+                {slide.type === 'video' ? (
+                  <video
+                    className="w-full h-full object-cover"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    poster={slide.poster}
+                  >
+                    {slide.srcWebm && <source src={slide.srcWebm} type="video/webm" />}
+                    {slide.srcMp4 && <source src={slide.srcMp4} type="video/mp4" />}
+                    {/* fallback */}
+                    Your browser does not support the video tag.
+                  </video>
+                ) : (
+                  <img
+                    src={slide.src}
+                    alt={`slide-${i + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                )}
               </Link>
             )
           })}
 
-          {/* ปุ่มเลื่อน (กันคลิกทะลุลิงก์) */}
+          {/* ปุ่มเลื่อน */}
           {SLIDES.length > 1 && (
             <>
               <button
-                onClick={(e) => { e.stopPropagation(); e.preventDefault(); goPrev() }}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); goPrev() }}
                 className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/10 text-white backdrop-blur px-3 py-2 text-lg hover:bg-white/30"
                 aria-label="Previous"
               >
                 ‹
               </button>
               <button
-                onClick={(e) => { e.stopPropagation(); e.preventDefault(); goNext() }}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); goNext() }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/10 text-white backdrop-blur px-3 py-2 text-lg hover:bg-white/30"
                 aria-label="Next"
               >
@@ -132,7 +153,7 @@ export default function Hero() {
             {SLIDES.map((_, i) => (
               <button
                 key={i}
-                onClick={(e) => { e.stopPropagation(); e.preventDefault(); goTo(i) }}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); goTo(i) }}
                 className={`h-2.5 w-2.5 rounded-full transition ${
                   i === index ? 'bg-white' : 'bg-white/40 hover:bg-white/60'
                 }`}
