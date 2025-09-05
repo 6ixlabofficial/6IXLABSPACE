@@ -19,7 +19,7 @@ export default function ContactPage() {
           Discord
         </a>
         <a
-          href="https://www.facebook.com/sonramnn/"
+          href="https://www.facebook.com/sixlab.design/"
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-md border border-neutral-300 px-5 py-3 text-sm text-neutral-800 hover:border-neutral-900"

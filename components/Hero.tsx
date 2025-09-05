@@ -12,7 +12,7 @@ const SLIDES: Slide[] = [
   {
     type: 'image',
     src: '/hero/slide-1.png',
-    url: '/shop',
+    url: '/#shop',
   },
   // รูป/GIF (ยังใช้ได้)
   { type: 'gif', src: '/hero/slide-2-gif.gif', url: 'https://discord.gg/eYGJRr44qj' },
