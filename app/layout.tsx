@@ -52,6 +52,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             gtag('config', 'G-T1M79TFLQW');
           `}
         </Script>
+
+        <Script id="ga-init" strategy="afterInteractive">
+  {`
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX');
+    console.log("✅ Google Analytics Loaded with ID: G-XXXXXXXXXX");
+  `}
+       </Script>
+
       </body>
     </html>
   )
