@@ -38,7 +38,7 @@ export default function CheckoutPage() {
 
   function insertTemplate() {
     const urlPart = refLink.trim() ? ` ${refLink.trim()}` : ''
-    const base = BRIEF_TEMPLATE.replace('ลิงก์รูปภาพหรือตัวอย่างงาน (ถ้ามี): ', `ลิงก์อ้างอิง (ถ้ามี):${urlPart}`)
+    const base = BRIEF_TEMPLATE.replace('ลิงก์อ้างอิง (ถ้ามี): ', `ลิงก์อ้างอิง (ถ้ามี):${urlPart}`)
     setBrief((curr) => (curr ? `${curr}\n\n${base}` : base))
   }
   function clearBrief() {
@@ -281,7 +281,7 @@ export default function CheckoutPage() {
         {/* ลิงก์อ้างอิง (จะถูกแทรกเข้าไปในบรีฟ) */}
         <div className="mb-3">
           <label className="block text-sm text-neutral-700 mb-1">
-            ลิงก์อ้างอิง (Google Drive/Imgur/ฯลฯ) — *ไม่บังคับ
+            ลิงก์รูปภาพหรือตัวอย่างงาน (Google Drive/Imgur/ฯลฯ) — *ไม่บังคับ
           </label>
           <input
             type="url"
