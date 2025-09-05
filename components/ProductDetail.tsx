@@ -147,7 +147,7 @@ export default function ProductDetail({
             </p>
 
             {product.description && (
-              <p className="mt-4 font-prompt text-base md:text-lg leading-8 text-neutral-700 max-w-prose">
+              <p className="mt-4 font-prompt text-base md:text-lg leading-8 text-neutral-700 max-w-prose whitespace-pre-line">
                 {product.description}
               </p>
             )}

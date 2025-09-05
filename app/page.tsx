@@ -26,7 +26,7 @@ const PRODUCTS: Product[] = [
     price: 499,
     category: 'promotion',
     images: ['/images/starter-pack/starterpack.png'],
-    description: 'สามารถเปลี่ยนสีเสื้อ, custom ลายเสื้อ, เปลี่ยนโลโก้ ได้ตามที่ต้องการ',
+    description: 'ชุดทั้ง 5 ตัวสามารถ Custom ได้ทั้งหมด\nสามารถเปลี่ยนสีเสื้อ, custom ลายเสื้อ, เปลี่ยนโลโก้ ได้ตามที่ต้องการ',
     badges: ['Promotion'],
   },
     {
@@ -36,7 +36,7 @@ const PRODUCTS: Product[] = [
     price: 399,
     category: 'promotion',
     images: ['/images/family-pack/familypack.png'],
-    description: 'สามารถเปลี่ยนสีเสื้อ, custom ลายเสื้อ, เปลี่ยนโลโก้ ได้ตามที่ต้องการ',
+    description: 'ชุดทั้ง 4 ตัวสามารถ Custom ได้ทั้งหมด\nสามารถเปลี่ยนสีเสื้อ, custom ลายเสื้อ, เปลี่ยนโลโก้ ได้ตามที่ต้องการ',
     badges: ['Promotion'],
   },
   {
