@@ -22,6 +22,16 @@ export default function CheckoutPage() {
   const pollRef = useRef<NodeJS.Timeout | null>(null)
   const [lastChannelId, setLastChannelId] = useState<string | null>(null)
 
+  // ===== How-to modal =====
+  const [howOpen, setHowOpen] = useState(false)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setHowOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   // บรีฟ + ลิงก์อ้างอิง (ไม่มีอัปโหลดไฟล์)
   const [brief, setBrief] = useState('')
   const [refLink, setRefLink] = useState('')
@@ -127,49 +137,49 @@ export default function CheckoutPage() {
 
   // สั่งซื้อ
   async function placeOrder() {
-  if (!brief.trim()) { alert('กรุณาพิมพ์บรีฟงาน'); return }
-  if (items.length === 0) { alert('ตะกร้าของคุณยังว่าง'); return }
-  if (!discordUserId) { alert('กรุณา Login ด้วย Discord ก่อน'); return }
-  if (!guild.ready) {
-    if (!guild.member) alert('กรุณาเข้าร่วม Discord Server ก่อน')
-    else if (guild.pending) alert('กรุณากดยอมรับกฎ (Rules) ใน Discord ก่อน')
-    return
+    if (!brief.trim()) { alert('กรุณาพิมพ์บรีฟงาน'); return }
+    if (items.length === 0) { alert('ตะกร้าของคุณยังว่าง'); return }
+    if (!discordUserId) { alert('กรุณา Login ด้วย Discord ก่อน'); return }
+    if (!guild.ready) {
+      if (!guild.member) alert('กรุณาเข้าร่วม Discord Server ก่อน')
+      else if (guild.pending) alert('กรุณากดยอมรับกฎ (Rules) ใน Discord ก่อน')
+      return
+    }
+
+    setLoading(true)
+
+    // ✅ รวม refLink เข้าไปในบรีฟเสมอ (ถ้าผู้ใช้กรอก)
+    const url = refLink.trim()
+    const mergedBrief =
+      url && /^https?:\/\//i.test(url)
+        ? `${brief.trim()}\n\n🔗 อ้างอิง: ${url}`
+        : brief.trim()
+
+    const payload = {
+      items: items.map(({ id, name, qty, price, image }: CartItem) => ({
+        id, name, qty, price,
+        image: (image && /^https?:\/\//i.test(image)) ? image : undefined,
+      })),
+      customer: { brief: mergedBrief, discordUserId } // ← ใช้ mergedBrief
+    }
+
+    const res = await fetch('/api/order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).then(r => r.json()).catch(() => ({ ok: false }))
+
+    setLoading(false)
+
+    if (!res?.ok) { alert('สั่งซื้อไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'); return }
+
+    setLastChannelId(res.channelId ?? null)
+    if (res.inviteUrl) window.open(res.inviteUrl, '_blank')
+    clear()
+    setBrief('')
+    setRefLink('')
+    alert('สร้างห้องใน Discord สำเร็จ! ถ้ามองไม่เห็น ให้กดยอมรับกฎ หรือกด “ตรวจสิทธิ์อีกครั้ง”.')
   }
-
-  setLoading(true)
-
-  // ✅ รวม refLink เข้าไปในบรีฟเสมอ (ถ้าผู้ใช้กรอก)
-  const url = refLink.trim()
-  const mergedBrief =
-    url && /^https?:\/\//i.test(url)
-      ? `${brief.trim()}\n\n🔗 อ้างอิง: ${url}`
-      : brief.trim()
-
-  const payload = {
-    items: items.map(({ id, name, qty, price, image }: CartItem) => ({
-      id, name, qty, price,
-      image: (image && /^https?:\/\//i.test(image)) ? image : undefined,
-    })),
-    customer: { brief: mergedBrief, discordUserId } // ← ใช้ mergedBrief
-  }
-
-  const res = await fetch('/api/order', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  }).then(r => r.json()).catch(() => ({ ok: false }))
-
-  setLoading(false)
-
-  if (!res?.ok) { alert('สั่งซื้อไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'); return }
-
-  setLastChannelId(res.channelId ?? null)
-  if (res.inviteUrl) window.open(res.inviteUrl, '_blank')
-  clear()
-  setBrief('')
-  setRefLink('')
-  alert('สร้างห้องใน Discord สำเร็จ! ถ้ามองไม่เห็น ให้กดยอมรับกฎ หรือกด “ตรวจสิทธิ์อีกครั้ง”.')
-}
 
   // ตรวจสิทธิ์อีกครั้ง
   async function grantAgain() {
@@ -187,7 +197,16 @@ export default function CheckoutPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-4 md:px-8 py-10">
-      <h1 className="text-2xl md:text-3xl font-oswald mb-6">Checkout</h1>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl md:text-3xl font-oswald">Checkout</h1>
+        {/* ปุ่มวิธีสั่งซื้อ (เปิด Modal) */}
+        <button
+          onClick={() => setHowOpen(true)}
+          className="rounded-md bg-neutral-900 text-white px-4 py-2 text-sm hover:bg-neutral-800"
+        >
+          วิธีสั่งซื้อ
+        </button>
+      </div>
 
       {/* ====== ตะกร้า ====== */}
       <div className="rounded-lg border border-neutral-200 p-4 mb-6">
@@ -396,6 +415,14 @@ export default function CheckoutPage() {
         <Link href="/" className="rounded-md border border-neutral-300 px-5 py-3 text-neutral-800 hover:border-neutral-900">
           เลือกสินค้าต่อ
         </Link>
+
+        {/* ปุ่มวิธีสั่งซื้อ (สำรองอีกจุด) */}
+        <button
+          onClick={() => setHowOpen(true)}
+          className="rounded-md border border-neutral-300 px-5 py-3 text-neutral-800 hover:border-neutral-900"
+        >
+          วิธีสั่งซื้อ
+        </button>
       </div>
 
       {/* ====== ปุ่มตรวจสิทธิ์อีกครั้ง ====== */}
@@ -408,6 +435,50 @@ export default function CheckoutPage() {
             ตรวจสิทธิ์เข้าห้องอีกครั้ง
           </button>
           <span className="text-neutral-500">ใช้เมื่อเพิ่ง join Discord หรือเพิ่งกดยอมรับกฎ</span>
+        </div>
+      )}
+
+      {/* ====== How-to Modal ====== */}
+      {howOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setHowOpen(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between">
+              <h2 className="text-xl font-semibold">วิธีสั่งซื้อ</h2>
+              <button
+                onClick={() => setHowOpen(false)}
+                aria-label="ปิด"
+                className="rounded-md px-2 py-1 text-neutral-600 hover:bg-neutral-100"
+              >
+                ✕
+              </button>
+            </div>
+
+            <ol className="mt-4 list-decimal pl-6 space-y-2 text-sm text-neutral-700">
+              <li>เลือกสินค้าและกำหนดจำนวน จากนั้นกด <b>เพิ่มลงตะกร้า</b></li>
+              <li>ไปที่หน้า <b>Checkout</b> เพื่อตรวจรายการและยอดรวม</li>
+              <li>กด <b>Login with Discord</b> เพื่อยืนยันตัวตน</li>
+              <li>เข้าร่วมดิสคอร์ดของเรา และ <b>กดยอมรับกฎ</b> ให้เรียบร้อย</li>
+              <li>กรอก <b>บรีฟงาน</b> ให้ครบถ้วน (แนบลิงก์อ้างอิงถ้ามี)</li>
+              <li>กด <b>ยืนยันสั่งซื้อ</b> ระบบจะสร้างห้องออเดอร์ใน Discord ให้อัตโนมัติ</li>
+            </ol>
+
+            <div className="mt-6 text-right">
+              <button
+                onClick={() => setHowOpen(false)}
+                className="rounded-md bg-neutral-900 px-4 py-2 text-white hover:bg-neutral-800"
+              >
+                ปิด
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </main>
