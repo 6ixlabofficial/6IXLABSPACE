@@ -41,17 +41,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* ✅ ติดตั้ง Google Analytics */}
         <Script
-          src={`https://www.googletagmanager.com/gtag/js?id=G-T1M79TFLQW`}
-          strategy="afterInteractive"
+          src="https://www.googletagmanager.com/gtag/js?id=G-T1M79TFLQW"
+           strategy="afterInteractive"
         />
         <Script id="ga-init" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-T1M79TFLQW');
-          `}
+        {`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-T1M79TFLQW');
+          console.log("✅ Google Analytics Loaded with ID: G-T1M79TFLQW");
+        `}
         </Script>
+
 
         <Script id="ga-init" strategy="afterInteractive">
   {`
