@@ -38,7 +38,7 @@ export default function CheckoutPage() {
 
   function insertTemplate() {
     const urlPart = refLink.trim() ? ` ${refLink.trim()}` : ''
-    const base = BRIEF_TEMPLATE.replace('ลิงก์อ้างอิง (ถ้ามี): ', `ลิงก์อ้างอิง (ถ้ามี):${urlPart}`)
+    const base = BRIEF_TEMPLATE.replace('ลิงก์รูปภาพหรือตัวอย่างงาน (ถ้ามี): ', `ลิงก์อ้างอิง (ถ้ามี):${urlPart}`)
     setBrief((curr) => (curr ? `${curr}\n\n${base}` : base))
   }
   function clearBrief() {
